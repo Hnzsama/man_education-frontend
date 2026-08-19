@@ -141,8 +141,13 @@ export default function CalendarPage() {
       },
     })
       .then(res => { if (res.ok) return res.json() })
-      .then(data => { if (data) setHolidays(data) })
-      .catch(() => {})
+      .then(data => {
+        if (Array.isArray(data)) setHolidays(data)
+        else if (data && Array.isArray(data.data)) setHolidays(data.data)
+        else if (data && Array.isArray(data.holidays)) setHolidays(data.holidays)
+        else setHolidays([])
+      })
+      .catch(() => setHolidays([]))
   }, [year])
 
   const startOffset = React.useMemo(() => {
@@ -189,7 +194,7 @@ export default function CalendarPage() {
       }
 
       // Skip class schedules if date is a public holiday
-      const holidayInfo = holidays.find((h: any) => h.holiday_date === ds)
+      const holidayInfo = holidays.find((h: any) => h.date === ds)
       if (holidayInfo) {
         isHoliday = true
       }
@@ -427,7 +432,7 @@ export default function CalendarPage() {
               const ds      = toDateStr(cell.date)
               const isDrop  = dropTargetDate === ds && draggingTaskId !== null
               const isWeekend = i % 7 >= 5
-              const holiday = holidays.find((h: any) => h.holiday_date === ds)
+              const holiday = holidays.find((h: any) => h.date === ds)
 
               return (
                 <div
@@ -444,8 +449,8 @@ export default function CalendarPage() {
                   {/* Day Number + add button on hover */}
                   <div className="flex justify-between items-center pb-0.5">
                     {holiday ? (
-                      <span className="text-[9px] font-semibold text-rose-500 max-w-[70%] truncate" title={holiday.holiday_name}>
-                        🎈 {holiday.holiday_name}
+                      <span className="text-[9px] font-semibold text-rose-500 max-w-[70%] truncate" title={holiday.description}>
+                        🎈 {holiday.description}
                       </span>
                     ) : (
                       <button
