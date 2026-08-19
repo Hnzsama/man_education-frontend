@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "NODE_OPTIONS='--max-old-space-size=4096' next dev",
+    "dev": "NODE_OPTIONS='--max-old-space-size=4096' next dev -p 777",
     "build": "NODE_OPTIONS='--max-old-space-size=4096' next build",
-    "start": "next start",
+    "start": "next start -p 777",
     "lint": "eslint"
   },
   "dependencies": {
