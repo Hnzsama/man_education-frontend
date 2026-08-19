@@ -333,13 +333,28 @@ export default function TasksPage() {
           </div>
           <Button 
             onClick={handleAddClick} 
-            disabled={currentUser?.role === "CLASS" && !currentUser?.whatsappGroupId} 
+            disabled={(currentUser?.role === "CLASS" && !currentUser?.whatsappGroupId) || !semesters.some((s: any) => s.isActive)} 
             className="w-fit"
           >
             <HugeiconsIcon icon={Add01Icon} strokeWidth={2.5} className="mr-2 h-4 w-4" />
             Add Task
           </Button>
         </div>
+
+        {/* Active Semester Check Alert */}
+        {!semesters.some((s: any) => s.isActive) && (
+          <Card className="border-warning/60 bg-warning/5 border shadow-sm font-sans mb-4">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-warning text-sm font-bold flex items-center gap-2">
+                <HugeiconsIcon icon={AlertCircleIcon} className="h-4 w-4 text-warning" />
+                Active Semester Required
+              </CardTitle>
+              <CardDescription className="text-muted-foreground text-xs">
+                You must create and activate at least one semester before you can manage tasks. Go to the <a href="/semesters" className="text-primary underline font-semibold">Semesters</a> page to manage your semesters.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        )}
 
         {/* WhatsApp Connection Alert for Class role */}
         {currentUser?.role === "CLASS" && !currentUser?.whatsappGroupId && (

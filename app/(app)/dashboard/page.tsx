@@ -415,13 +415,16 @@ export default function DashboardPage() {
         </div>
 
         {/* Reminders Settings Card */}
-        {currentUser?.role === "CLASS" && (
+        {currentUser && (
           <RemindersSettings
             initialData={{
               remindersEnabled: currentUser.remindersEnabled,
               semesterTransitionEnabled: currentUser.semesterTransitionEnabled,
-              scheduleReminderOffsets: currentUser.scheduleReminderOffsets || [6, 3, 1],
-              taskReminderOffsets: currentUser.taskReminderOffsets || [24, 12]
+              scheduleReminderOffsets: currentUser.scheduleReminderOffsets || [360, 180, 60],
+              taskReminderOffsets: currentUser.taskReminderOffsets || [1440, 720],
+              notificationChannel: currentUser.notificationChannel || "EMAIL",
+              whatsappNumber: currentUser.whatsappNumber || "",
+              userRole: currentUser.role
             }}
             onSaveSuccess={async () => {
               const token = getCookie("token");

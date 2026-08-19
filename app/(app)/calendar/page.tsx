@@ -70,6 +70,7 @@ export default function CalendarPage() {
   const [tasks, setTasks]   = React.useState<any[]>([])
   const [loading, setLoading] = React.useState(true)
   const [courseColorMap, setCourseColorMap] = React.useState<Record<string,number>>({})
+  const [holidays, setHolidays] = React.useState<any[]>([])
 
   // DnD state
   const [draggingTaskId, setDraggingTaskId] = React.useState<string|null>(null)
@@ -125,11 +126,24 @@ export default function CalendarPage() {
     }
   }, [router])
 
-  React.useEffect(() => { fetchData() }, [fetchData])
-
   // ─── Calendar Math ───────────────────────────────────────────
   const year  = currentDate.getFullYear()
   const month = currentDate.getMonth()
+
+  React.useEffect(() => { fetchData() }, [fetchData])
+
+  React.useEffect(() => {
+    const token = getCookie("token")
+    if (!token) return
+    fetch(`${API_URL}/api/semesters/holidays?year=${year}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then(res => { if (res.ok) return res.json() })
+      .then(data => { if (data) setHolidays(data) })
+      .catch(() => {})
+  }, [year])
 
   const startOffset = React.useMemo(() => {
     const d = new Date(year, month, 1).getDay()
@@ -163,10 +177,25 @@ export default function CalendarPage() {
 
     const schedules: any[] = []
     if (activeSemester) {
-      const semStart = new Date(activeSemester.startDate); semStart.setHours(0,0,0,0)
+      const semStart = new Date(activeSemester.academicStartDate || activeSemester.startDate); semStart.setHours(0,0,0,0)
       const semEnd   = new Date(activeSemester.endDate);   semEnd.setHours(23,59,59,999)
-      // Only render class pills within the active semester's date range
-      if (date >= semStart && date <= semEnd) {
+      
+      let isHoliday = false
+      if (activeSemester.holidayStartDate) {
+        const holidayStart = new Date(activeSemester.holidayStartDate); holidayStart.setHours(0,0,0,0)
+        if (date >= holidayStart) {
+          isHoliday = true
+        }
+      }
+
+      // Skip class schedules if date is a public holiday
+      const holidayInfo = holidays.find((h: any) => h.holiday_date === ds)
+      if (holidayInfo) {
+        isHoliday = true
+      }
+
+      // Only render class pills within the active semester's date range and not during holidays
+      if (date >= semStart && date <= semEnd && !isHoliday) {
         activeSemester.courses?.forEach((c: any) => {
           c.schedules?.forEach((sc: any) => {
             if (sc.dayOfWeek === dow)
@@ -398,6 +427,7 @@ export default function CalendarPage() {
               const ds      = toDateStr(cell.date)
               const isDrop  = dropTargetDate === ds && draggingTaskId !== null
               const isWeekend = i % 7 >= 5
+              const holiday = holidays.find((h: any) => h.holiday_date === ds)
 
               return (
                 <div
@@ -413,15 +443,21 @@ export default function CalendarPage() {
                 >
                   {/* Day Number + add button on hover */}
                   <div className="flex justify-between items-center pb-0.5">
-                    <button
-                      className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary h-5 w-5 flex items-center justify-center rounded"
-                      title={`Add task on ${cell.date.toLocaleDateString()}`}
-                      onClick={() => openAddSheet(cell.date)}
-                    >
-                      <HugeiconsIcon icon={Add01Icon} className="h-3 w-3" />
-                    </button>
+                    {holiday ? (
+                      <span className="text-[9px] font-semibold text-rose-500 max-w-[70%] truncate" title={holiday.holiday_name}>
+                        🎈 {holiday.holiday_name}
+                      </span>
+                    ) : (
+                      <button
+                        className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary h-5 w-5 flex items-center justify-center rounded"
+                        title={`Add task on ${cell.date.toLocaleDateString()}`}
+                        onClick={() => openAddSheet(cell.date)}
+                      >
+                        <HugeiconsIcon icon={Add01Icon} className="h-3 w-3" />
+                      </button>
+                    )}
                     <span className={`text-xs font-bold flex h-6 w-6 items-center justify-center rounded-full
-                      ${isToday ? "bg-primary text-primary-foreground shadow" : "text-foreground/60"}`}>
+                      ${isToday ? "bg-primary text-primary-foreground shadow" : holiday ? "text-rose-500 bg-rose-500/10" : "text-foreground/60"}`}>
                       {cell.date.getDate()}
                     </span>
                   </div>

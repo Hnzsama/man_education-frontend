@@ -474,10 +474,9 @@ export default function CoursesPage() {
                 <Input
                   id="course-code"
                   type="text"
-                  placeholder="e.g. SNR301"
+                  placeholder="e.g. SNR301 (Optional - auto-generated)"
                   value={code}
                   onChange={(e) => setCode(e.target.value)}
-                  required
                 />
               </Field>
               <Field>

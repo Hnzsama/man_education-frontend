@@ -192,6 +192,110 @@ export default function SchedulesPage() {
     fetchAllData(selectedSemesterId)
   }, [selectedSemesterId, fetchAllData])
 
+  // AI Generate States
+  const [aiSheetOpen, setAiSheetOpen] = React.useState(false)
+  const [aiImage, setAiImage] = React.useState("")
+  const [aiCommand, setAiCommand] = React.useState("")
+  const [aiLoading, setAiLoading] = React.useState(false)
+
+  const convertToWebP = (file: File): Promise<string> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        const img = new Image()
+        img.onload = () => {
+          const canvas = document.createElement("canvas")
+          let width = img.width
+          let height = img.height
+          
+          const MAX_SIZE = 1600
+          if (width > MAX_SIZE || height > MAX_SIZE) {
+            if (width > height) {
+              height = Math.round((height * MAX_SIZE) / width)
+              width = MAX_SIZE
+            } else {
+              width = Math.round((width * MAX_SIZE) / height)
+              height = MAX_SIZE
+            }
+          }
+          
+          canvas.width = width
+          canvas.height = height
+          
+          const ctx = canvas.getContext("2d")
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height)
+            const webpDataUrl = canvas.toDataURL("image/webp", 0.8)
+            resolve(webpDataUrl)
+          } else {
+            resolve(e.target?.result as string)
+          }
+        }
+        img.src = e.target?.result as string
+      }
+      reader.readAsDataURL(file)
+    })
+  }
+
+  const handleAIImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      try {
+        const webpDataUrl = await convertToWebP(file)
+        setAiImage(webpDataUrl)
+      } catch (err) {
+        const reader = new FileReader()
+        reader.onloadend = () => {
+          setAiImage(reader.result as string)
+        }
+        reader.readAsDataURL(file)
+      }
+    }
+  }
+
+  const handleAIGenerate = async () => {
+    if (!aiImage && !aiCommand) return
+    setAiLoading(true)
+
+    const token = getCookie("token")
+    if (!token) return
+
+    try {
+      const res = await fetch(`${API_URL}/api/semesters/${selectedSemesterId}/schedules/ai-generate`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          image: aiImage,
+          command: aiCommand,
+        }),
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.message || "Failed to generate schedules")
+      }
+
+      const generated = await res.json()
+      toast.add({
+        type: "success",
+        description: `Successfully generated ${generated.length} class schedules!`,
+      })
+      
+      setAiImage("")
+      setAiCommand("")
+      setAiSheetOpen(false)
+      
+      fetchAllData(selectedSemesterId)
+    } catch (err: any) {
+      toast.add({ type: "error", description: err.message || "Failed to generate schedules" })
+    } finally {
+      setAiLoading(false)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     const targetCourseId = editingScheduleId ? editingCourseId : selectedCourseId
@@ -332,14 +436,27 @@ export default function SchedulesPage() {
               Visual weekly view of your class schedules.
             </p>
           </div>
-          <Button 
-            onClick={handleAddClick} 
-            disabled={!selectedSemesterId || courses.length === 0 || (currentUser?.role === "CLASS" && !currentUser?.whatsappGroupId)} 
-            className="w-fit"
-          >
-            <HugeiconsIcon icon={Add01Icon} strokeWidth={2.5} className="mr-2 h-4 w-4" />
-            Add Schedule
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              onClick={() => setAiSheetOpen(true)}
+              disabled={!selectedSemesterId || courses.length === 0} 
+              variant="outline"
+              className="w-fit"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="mr-2 h-4 w-4 text-primary">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 21l-.813-5.096L3 15l5.096-.813L9 9l.813 5.096L15 15l-5.187.904zM18.007 7.007l-.318-2.007-2.007-.318.318-2.007 2.007.318.318 2.007-2.007.318z" />
+              </svg>
+              AI Generate
+            </Button>
+            <Button 
+              onClick={handleAddClick} 
+              disabled={!selectedSemesterId || courses.length === 0 || (currentUser?.role === "CLASS" && !currentUser?.whatsappGroupId)} 
+              className="w-fit"
+            >
+              <HugeiconsIcon icon={Add01Icon} strokeWidth={2.5} className="mr-2 h-4 w-4" />
+              Add Schedule
+            </Button>
+          </div>
         </div>
 
         {/* WhatsApp Connection Alert for Class role */}
@@ -615,6 +732,63 @@ export default function SchedulesPage() {
                 </Button>
               </div>
             </form>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      <Sheet open={aiSheetOpen} onOpenChange={setAiSheetOpen}>
+        <SheetContent className="sm:max-w-[440px] font-sans overflow-y-auto">
+          <SheetHeader className="pb-6">
+            <SheetTitle className="text-xl font-bold">AI Schedule Generator</SheetTitle>
+            <SheetDescription>
+              Upload a screenshot of your class schedule or type manual commands. Gemini will automatically match the schedules with your courses.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="space-y-6 px-6 py-4">
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-semibold text-foreground">Upload Screenshot (Image)</label>
+              <div className="flex flex-col items-center justify-center border border-dashed border-border rounded-xl p-6 bg-muted/10 hover:bg-muted/20 transition-colors relative group min-h-[140px]">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAIImageChange}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                />
+                {aiImage ? (
+                  <div className="flex flex-col items-center gap-2">
+                    <img src={aiImage} alt="Preview" className="max-h-40 rounded-lg object-contain shadow" />
+                    <span className="text-xs text-primary font-medium hover:underline">Change image</span>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8 text-muted-foreground">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" />
+                    </svg>
+                    <span className="text-xs font-semibold text-muted-foreground text-center">Click or Drag Image to Upload</span>
+                  </div>
+                )}
+              </div>
+            </div>
+ 
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-semibold text-foreground">Additional Commands / Text Instructions (Optional)</label>
+              <textarea
+                placeholder="e.g. Hanya tambahkan jadwal untuk hari Senin dan Selasa saja..."
+                value={aiCommand}
+                onChange={(e) => setAiCommand(e.target.value)}
+                className="w-full min-h-[90px] rounded-xl border border-input bg-input/30 p-3 text-sm transition-colors outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 placeholder:text-muted-foreground resize-none font-sans"
+              />
+            </div>
+ 
+            <div className="flex gap-3 pt-4">
+              <Button type="button" variant="outline" className="w-1/2" onClick={() => setAiSheetOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleAIGenerate} className="w-1/2" disabled={aiLoading || (!aiImage && !aiCommand)}>
+                {aiLoading ? "Generating..." : "Generate"}
+              </Button>
+            </div>
           </div>
         </SheetContent>
       </Sheet>

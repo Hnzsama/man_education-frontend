@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { DatePicker } from "@/components/date-picker"
 import { Field, FieldLabel } from "@/components/ui/field"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -52,6 +53,8 @@ export default function SemestersPage() {
   const [name, setName] = React.useState("")
   const [startDate, setStartDate] = React.useState("")
   const [endDate, setEndDate] = React.useState("")
+  const [academicStartDate, setAcademicStartDate] = React.useState("")
+  const [holidayStartDate, setHolidayStartDate] = React.useState("")
   const [formLoading, setFormLoading] = React.useState(false)
 
   // Sheet (Drawer) state
@@ -129,6 +132,8 @@ export default function SemestersPage() {
           name,
           startDate: new Date(startDate).toISOString(),
           endDate: new Date(endDate).toISOString(),
+          academicStartDate: academicStartDate ? new Date(academicStartDate).toISOString() : null,
+          holidayStartDate: holidayStartDate ? new Date(holidayStartDate).toISOString() : null,
         }),
       })
 
@@ -140,6 +145,8 @@ export default function SemestersPage() {
       setName("")
       setStartDate("")
       setEndDate("")
+      setAcademicStartDate("")
+      setHolidayStartDate("")
       setEditingSemesterId(null)
       setSheetOpen(false)
       toast.add({ 
@@ -159,6 +166,8 @@ export default function SemestersPage() {
     setName("")
     setStartDate("")
     setEndDate("")
+    setAcademicStartDate("")
+    setHolidayStartDate("")
     setSheetOpen(true)
   }
 
@@ -167,6 +176,8 @@ export default function SemestersPage() {
     setName(sem.name)
     setStartDate(new Date(sem.startDate).toISOString().split("T")[0])
     setEndDate(new Date(sem.endDate).toISOString().split("T")[0])
+    setAcademicStartDate(sem.academicStartDate ? new Date(sem.academicStartDate).toISOString().split("T")[0] : "")
+    setHolidayStartDate(sem.holidayStartDate ? new Date(sem.holidayStartDate).toISOString().split("T")[0] : "")
     setSheetOpen(true)
   }
 
@@ -228,6 +239,13 @@ export default function SemestersPage() {
     const end = new Date(endStr)
     const options: Intl.DateTimeFormatOptions = { month: "short", year: "numeric" }
     return `${start.toLocaleDateString("id-ID", options)} - ${end.toLocaleDateString("id-ID", options)}`
+  }
+
+  const formatDateSingle = (dateStr: string) => {
+    if (!dateStr) return ""
+    const date = new Date(dateStr)
+    const options: Intl.DateTimeFormatOptions = { day: "numeric", month: "short", year: "numeric" }
+    return date.toLocaleDateString("id-ID", options)
   }
 
   if (loading) {
@@ -316,9 +334,23 @@ export default function SemestersPage() {
                     </div>
                   </CardHeader>
                   <CardContent className="pb-4 space-y-3 font-sans">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <HugeiconsIcon icon={Calendar02Icon} strokeWidth={2} className="h-4 w-4 text-primary/70" />
-                      <span>{formatDateRange(sem.startDate, sem.endDate)}</span>
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <HugeiconsIcon icon={Calendar02Icon} strokeWidth={2} className="h-4 w-4 text-primary/70" />
+                        <span>{formatDateRange(sem.startDate, sem.endDate)}</span>
+                      </div>
+                      {sem.academicStartDate && (
+                        <div className="text-[11px] text-muted-foreground/80 pl-6 flex items-center gap-1.5">
+                          <span className="w-1 h-1 rounded-full bg-muted-foreground/50 shrink-0" />
+                          <span>Kuliah: {formatDateSingle(sem.academicStartDate)}</span>
+                        </div>
+                      )}
+                      {sem.holidayStartDate && (
+                        <div className="text-[11px] text-muted-foreground/80 pl-6 flex items-center gap-1.5">
+                          <span className="w-1 h-1 rounded-full bg-muted-foreground/50 shrink-0" />
+                          <span>Libur: {formatDateSingle(sem.holidayStartDate)}</span>
+                        </div>
+                      )}
                     </div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <HugeiconsIcon icon={Book02Icon} strokeWidth={2} className="h-4 w-4 text-primary/70" />
@@ -388,23 +420,35 @@ export default function SemestersPage() {
                 />
               </Field>
               <Field>
-                <FieldLabel htmlFor="start-date">Start Date</FieldLabel>
-                <Input
-                  id="start-date"
-                  type="date"
+                <FieldLabel>Start Date</FieldLabel>
+                <DatePicker
                   value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  required
+                  onChange={(val) => setStartDate(val)}
+                  placeholder="Choose Start Date"
                 />
               </Field>
               <Field>
-                <FieldLabel htmlFor="end-date">End Date</FieldLabel>
-                <Input
-                  id="end-date"
-                  type="date"
+                <FieldLabel>End Date</FieldLabel>
+                <DatePicker
                   value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  required
+                  onChange={(val) => setEndDate(val)}
+                  placeholder="Choose End Date"
+                />
+              </Field>
+              <Field>
+                <FieldLabel>Academic Start Date (Optional)</FieldLabel>
+                <DatePicker
+                  value={academicStartDate}
+                  onChange={(val) => setAcademicStartDate(val)}
+                  placeholder="Choose Actual Start Date"
+                />
+              </Field>
+              <Field>
+                <FieldLabel>Holiday Start Date (Optional)</FieldLabel>
+                <DatePicker
+                  value={holidayStartDate}
+                  onChange={(val) => setHolidayStartDate(val)}
+                  placeholder="Choose Holiday Start Date"
                 />
               </Field>
               <div className="flex gap-3 pt-4">
