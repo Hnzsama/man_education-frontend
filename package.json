@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "NODE_OPTIONS='--max-old-space-size=4096' next dev -p 777",
     "build": "NODE_OPTIONS='--max-old-space-size=4096' next build",
-    "start": "next start -p 777",
+    "start": "next start -p 7777",
     "lint": "eslint"
   },
   "dependencies": {
