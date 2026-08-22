@@ -93,11 +93,8 @@ export function RemindersSettings({ initialData, onSaveSuccess }: RemindersSetti
   }, [initialData]);
 
   const handleSave = async () => {
-    if (remindersEnabled && notificationChannel === "WHATSAPP" && userRole === "INDIVIDUAL" && !whatsappNumber) {
-      setMessage({ type: "error", text: "Silakan atur nomor WhatsApp Anda di halaman Profil terlebih dahulu. Mengalihkan ke Profil..." });
-      setTimeout(() => {
-        router.push("/profile");
-      }, 2000);
+    if (remindersEnabled && notificationChannel === "WHATSAPP" && userRole === "INDIVIDUAL" && !whatsappNumber && !whatsappJid) {
+      setMessage({ type: "error", text: "Silakan isi Nomor WhatsApp atau WhatsApp JID/LID terlebih dahulu." });
       return;
     }
 
