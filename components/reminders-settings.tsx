@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import { API_URL } from "@/lib/config";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -52,6 +53,7 @@ interface RemindersSettingsProps {
 }
 
 export function RemindersSettings({ initialData, onSaveSuccess }: RemindersSettingsProps) {
+  const router = useRouter();
   const [remindersEnabled, setRemindersEnabled] = React.useState(initialData?.remindersEnabled ?? false);
   const [semesterTransitionEnabled, setSemesterTransitionEnabled] = React.useState(initialData?.semesterTransitionEnabled ?? true);
   const [scheduleReminderOffsets, setScheduleReminderOffsets] = React.useState<number[]>(initialData?.scheduleReminderOffsets ?? [360, 180, 60]);
@@ -81,6 +83,14 @@ export function RemindersSettings({ initialData, onSaveSuccess }: RemindersSetti
   }, [initialData]);
 
   const handleSave = async () => {
+    if (remindersEnabled && notificationChannel === "WHATSAPP" && userRole === "INDIVIDUAL" && !whatsappNumber) {
+      setMessage({ type: "error", text: "Silakan atur nomor WhatsApp Anda di halaman Profil terlebih dahulu. Mengalihkan ke Profil..." });
+      setTimeout(() => {
+        router.push("/profile");
+      }, 2000);
+      return;
+    }
+
     setLoading(true);
     setMessage(null);
     const token = getCookie("token");
@@ -228,20 +238,38 @@ export function RemindersSettings({ initialData, onSaveSuccess }: RemindersSetti
 
             {/* WhatsApp Phone Number Input */}
             {notificationChannel === "WHATSAPP" && userRole === "INDIVIDUAL" && (
-              <div className="space-y-1.5 pt-2 animate-in fade-in slide-in-from-top-1 duration-200">
-                <Label htmlFor="wa-number" className="text-xs font-semibold">Nomor WhatsApp Pribadi</Label>
-                <Input
-                  id="wa-number"
-                  type="text"
-                  placeholder="Contoh: 628123456789"
-                  value={whatsappNumber}
-                  onChange={(e) => setWhatsappNumber(e.target.value)}
-                  className="h-9"
-                  required
-                />
-                <p className="text-[11px] text-muted-foreground leading-normal">
-                  Masukkan nomor telepon lengkap diawali kode negara (misal 62 untuk Indonesia) tanpa spasi atau tanda +. Bot akan mengirim pesan langsung ke nomor ini.
-                </p>
+              <div className="space-y-3 pt-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                {!whatsappNumber ? (
+                  <div className="p-3.5 border border-yellow-500/30 bg-yellow-500/10 rounded-xl space-y-2">
+                    <p className="text-xs text-yellow-600 dark:text-yellow-400 font-medium leading-relaxed">
+                      ⚠️ Anda belum mengatur nomor WhatsApp. Silakan atur nomor WhatsApp Anda di halaman Profil terlebih dahulu untuk mengaktifkan notifikasi.
+                    </p>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => router.push("/profile")}
+                      className="h-8 text-xs font-semibold bg-yellow-600 text-white hover:bg-yellow-700"
+                    >
+                      Buka Pengaturan Profil
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="wa-number" className="text-xs font-semibold">Nomor WhatsApp Pribadi</Label>
+                    <Input
+                      id="wa-number"
+                      type="text"
+                      placeholder="Contoh: 628123456789"
+                      value={whatsappNumber}
+                      onChange={(e) => setWhatsappNumber(e.target.value)}
+                      className="h-9"
+                      required
+                    />
+                    <p className="text-[11px] text-muted-foreground leading-normal">
+                      Masukkan nomor telepon lengkap diawali kode negara (misal 62 untuk Indonesia) tanpa spasi atau tanda +. Bot akan mengirim pesan langsung ke nomor ini.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
             
