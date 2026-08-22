@@ -39,8 +39,8 @@ export function NavUser({
   const handleLogout = () => {
     // Invalidate the session cookie
     document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax"
-    // Redirect to login page
-    router.push("/login")
+    // Force a full reload redirect to login page for instant and clean state reset
+    window.location.href = "/login"
   }
 
   return (
