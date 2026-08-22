@@ -444,7 +444,7 @@ export default function CalendarPage() {
                     ${!cell.current ? "bg-muted/10 opacity-40 pointer-events-none" : isWeekend ? "bg-muted/5 hover:bg-muted/10" : "bg-card hover:bg-muted/5"}
                     ${holiday ? "!bg-muted/20 opacity-80" : ""}
                     ${isToday ? "!bg-primary/5 ring-[1.5px] ring-inset ring-primary/40" : ""}
-                    ${isSelected ? "ring-[1.5px] ring-inset ring-primary z-10" : ""}
+                    ${isSelected ? "ring-[1.5px] ring-inset ring-primary/50 z-10" : ""}
                     ${isDrop ? "!bg-primary/10 ring-[1.5px] ring-inset ring-primary/60 scale-[1.01]" : ""}
                   `}
                   onDragOver={(e) => cell.current && handleDragOver(e, ds)}
