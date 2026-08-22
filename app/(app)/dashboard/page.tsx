@@ -23,7 +23,9 @@ import {
   AlertCircleIcon,
   ArrowRight01Icon,
   SchoolIcon,
-  GraduationCapIcon
+  GraduationCapIcon,
+  Download01Icon,
+  Upload01Icon
 } from "@hugeicons/core-free-icons"
 import { toast } from "@/components/ui/toast"
 
@@ -52,6 +54,75 @@ export default function DashboardPage() {
   const [todaySchedules, setTodaySchedules] = React.useState<any[]>([])
   const [pendingTasks, setPendingTasks] = React.useState<any[]>([])
   const [loading, setLoading] = React.useState(true)
+  const [backupLoading, setBackupLoading] = React.useState(false)
+  const fileInputRef = React.useRef<HTMLInputElement>(null)
+
+  const handleExportData = async () => {
+    setBackupLoading(true)
+    const token = getCookie("token")
+    try {
+      const res = await fetch(`${API_URL}/api/users/me/export`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (!res.ok) throw new Error("Gagal mengekspor data")
+      
+      const data = await res.json()
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2))
+      const downloadAnchor = document.createElement("a")
+      downloadAnchor.setAttribute("href", dataStr)
+      downloadAnchor.setAttribute("download", `man-education-backup-${new Date().toISOString().slice(0, 10)}.json`)
+      document.body.appendChild(downloadAnchor)
+      downloadAnchor.click()
+      downloadAnchor.remove()
+      
+      toast.add({ type: "success", description: "Data berhasil diekspor! 🎉" })
+    } catch (err: any) {
+      console.error(err)
+      toast.add({ type: "error", description: err.message || "Gagal melakukan ekspor data." })
+    } finally {
+      setBackupLoading(false)
+    }
+  }
+
+  const handleImportData = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setBackupLoading(true)
+    const token = getCookie("token")
+    const reader = new FileReader()
+    
+    reader.onload = async (event) => {
+      try {
+        const jsonContent = JSON.parse(event.target?.result as string)
+        
+        const res = await fetch(`${API_URL}/api/users/me/import`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify(jsonContent)
+        })
+
+        if (!res.ok) throw new Error("Gagal mengimpor data")
+
+        toast.add({ type: "success", description: "Data berhasil diimpor! Halaman akan dimuat ulang..." })
+        
+        setTimeout(() => {
+          window.location.reload()
+        }, 1500)
+      } catch (err: any) {
+        console.error(err)
+        toast.add({ type: "error", description: err.message || "Format file backup tidak valid." })
+      } finally {
+        setBackupLoading(false)
+        e.target.value = ""
+      }
+    }
+
+    reader.readAsText(file)
+  }
 
   const getTodayDayOfWeek = () => {
     const day = new Date().getDay()
@@ -438,6 +509,58 @@ export default function DashboardPage() {
               }
             }}
           />
+        )}
+
+        {/* Backup & Data Portability Card */}
+        {currentUser && (
+          <Card className="border-border/60 font-sans shadow-xs mt-6">
+            <CardHeader>
+              <CardTitle className="text-lg font-bold flex items-center gap-2">
+                <HugeiconsIcon icon={Database01Icon} className="h-5 w-5 text-primary" />
+                Data Backup & Portability
+              </CardTitle>
+              <CardDescription>
+                Export all your academic semesters, courses, schedules, and tasks into a backup JSON file, or restore them.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-xs text-muted-foreground leading-normal">
+                Ekspor data Anda sebagai cadangan (backup) yang dapat langsung diimpor kembali ke akun ini atau akun Man Education lainnya secara aman. Relasi antar semester, mata kuliah, jadwal, dan tugas akan dipertahankan secara otomatis.
+              </p>
+              
+              <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                {/* Export Button */}
+                <Button
+                  onClick={handleExportData}
+                  disabled={backupLoading}
+                  className="flex-1 font-semibold"
+                >
+                  <HugeiconsIcon icon={Download01Icon} className="mr-2 h-4 w-4" />
+                  {backupLoading ? "Exporting..." : "Ekspor Data (JSON)"}
+                </Button>
+
+                {/* Import Button / File Input */}
+                <div className="flex-1">
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    accept=".json"
+                    onChange={handleImportData}
+                    className="hidden"
+                  />
+                  <Button
+                    variant="outline"
+                    className="w-full font-semibold border-dashed hover:bg-muted/50"
+                    disabled={backupLoading}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <HugeiconsIcon icon={Upload01Icon} className="mr-2 h-4 w-4" />
+                    {backupLoading ? "Importing..." : "Impor Data (JSON)"}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         )}
       </div>
     </div>
