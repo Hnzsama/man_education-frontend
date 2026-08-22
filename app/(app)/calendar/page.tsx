@@ -200,12 +200,12 @@ export default function CalendarPage() {
         isHoliday = true
       }
 
-      // Only render class pills within the active semester's date range and not during holidays
-      if (date >= semStart && date <= semEnd && !isHoliday) {
+      // Render class pills within the active semester's date range, passing isHoliday state
+      if (date >= semStart && date <= semEnd) {
         activeSemester.courses?.forEach((c: any) => {
           c.schedules?.forEach((sc: any) => {
             if (sc.dayOfWeek === dow)
-              schedules.push({ id:`${sc.id}-${ds}`, type:"schedule", title:c.name, code:c.code, time:sc.startTime, courseId:c.id })
+              schedules.push({ id:`${sc.id}-${ds}`, type:"schedule", title:c.name, code:c.code, time:sc.startTime, courseId:c.id, isHoliday })
           })
         })
       }
@@ -442,9 +442,10 @@ export default function CalendarPage() {
                   onClick={() => cell.current && setSelectedDate(cell.date)}
                   className={`min-h-[130px] flex flex-col p-1.5 gap-1 transition-all group relative cursor-pointer
                     ${!cell.current ? "bg-muted/10 opacity-40 pointer-events-none" : isWeekend ? "bg-muted/5 hover:bg-muted/10" : "bg-card hover:bg-muted/5"}
-                    ${isToday ? "!bg-primary/5 ring-2 ring-inset ring-primary/40" : ""}
-                    ${isSelected ? "ring-2 ring-inset ring-primary z-10" : ""}
-                    ${isDrop ? "!bg-primary/10 ring-2 ring-inset ring-primary/60 scale-[1.01]" : ""}
+                    ${holiday ? "!bg-muted/20 opacity-80" : ""}
+                    ${isToday ? "!bg-primary/5 ring-[1.5px] ring-inset ring-primary/40" : ""}
+                    ${isSelected ? "ring-[1.5px] ring-inset ring-primary z-10" : ""}
+                    ${isDrop ? "!bg-primary/10 ring-[1.5px] ring-inset ring-primary/60 scale-[1.01]" : ""}
                   `}
                   onDragOver={(e) => cell.current && handleDragOver(e, ds)}
                   onDragLeave={() => setDropTargetDate(null)}
@@ -483,8 +484,11 @@ export default function CalendarPage() {
                         const c = COURSE_COLORS[courseColorMap[item.courseId] ?? 0]
                         return (
                           <div key={item.id}
-                            className={`flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold border cursor-default
-                              ${c.bg} ${c.text} ${c.border} leading-tight`}
+                            className={`flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold border cursor-default leading-tight
+                              ${item.isHoliday 
+                                ? "bg-muted text-muted-foreground border-muted-foreground/15 opacity-65" 
+                                : `${c.bg} ${c.text} ${c.border}`
+                              }`}
                           >
                             <HugeiconsIcon icon={Clock01Icon} className="h-2.5 w-2.5 shrink-0 opacity-70" />
                             <span className="truncate">{item.title}</span>
