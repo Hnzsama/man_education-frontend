@@ -30,6 +30,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet"
+import { Checkbox } from "@/components/ui/checkbox"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { 
   Delete02Icon, 
@@ -39,7 +40,10 @@ import {
   Calendar02Icon, 
   CircleCheckIcon, 
   AlertCircleIcon, 
-  HourglassIcon 
+  HourglassIcon,
+  UserGroupIcon,
+  Link01Icon,
+  File01Icon
 } from "@hugeicons/core-free-icons"
 import { toast } from "@/components/ui/toast"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
@@ -72,6 +76,11 @@ export default function TasksPage() {
   const [deadline, setDeadline] = React.useState("")
   const [status, setStatus] = React.useState("PENDING")
   const [priority, setPriority] = React.useState("MEDIUM")
+  const [isGroupTask, setIsGroupTask] = React.useState(false)
+  const [myPart, setMyPart] = React.useState("")
+  const [weightPercentage, setWeightPercentage] = React.useState("")
+  const [submissionMethod, setSubmissionMethod] = React.useState("OFFLINE")
+  const [submissionLink, setSubmissionLink] = React.useState("")
   const [formLoading, setFormLoading] = React.useState(false)
 
   // Sheet State
@@ -166,6 +175,11 @@ export default function TasksPage() {
           deadline: new Date(deadline).toISOString(),
           status,
           priority,
+          isGroupTask,
+          myPart: isGroupTask ? (myPart || null) : null,
+          weightPercentage: weightPercentage ? parseInt(weightPercentage, 10) : null,
+          submissionMethod,
+          submissionLink: submissionLink || null,
         }),
       })
 
@@ -180,6 +194,11 @@ export default function TasksPage() {
       setDeadline("")
       setStatus("PENDING")
       setPriority("MEDIUM")
+      setIsGroupTask(false)
+      setMyPart("")
+      setWeightPercentage("")
+      setSubmissionMethod("OFFLINE")
+      setSubmissionLink("")
       setEditingTaskId(null)
       setSheetOpen(false)
       toast.add({ 
@@ -202,6 +221,11 @@ export default function TasksPage() {
     setDeadline("")
     setStatus("PENDING")
     setPriority("MEDIUM")
+    setIsGroupTask(false)
+    setMyPart("")
+    setWeightPercentage("")
+    setSubmissionMethod("OFFLINE")
+    setSubmissionLink("")
     setSheetOpen(true)
   }
 
@@ -213,6 +237,11 @@ export default function TasksPage() {
     setDeadline(new Date(task.deadline).toISOString().slice(0, 16)) // Format to YYYY-MM-DDTHH:MM for datetime-local
     setStatus(task.status)
     setPriority(task.priority)
+    setIsGroupTask(task.isGroupTask || false)
+    setMyPart(task.myPart || "")
+    setWeightPercentage(task.weightPercentage?.toString() || "")
+    setSubmissionMethod(task.submissionMethod || "OFFLINE")
+    setSubmissionLink(task.submissionLink || "")
     setSheetOpen(true)
   }
 
@@ -538,6 +567,50 @@ export default function TasksPage() {
                       <HugeiconsIcon icon={Calendar02Icon} strokeWidth={2} className="h-3.5 w-3.5 text-primary/70" />
                       <span>Due: {formatDate(task.deadline)}</span>
                     </div>
+
+                    {/* Extra Details */}
+                    <div className="flex flex-col gap-2 pt-2 border-t border-border/30">
+                      {/* Group vs Individual Task */}
+                      <div className="flex items-center gap-2 text-xs">
+                        <HugeiconsIcon
+                          icon={task.isGroupTask ? UserGroupIcon : File01Icon}
+                          className={`h-3.5 w-3.5 ${task.isGroupTask ? "text-indigo-500" : "text-muted-foreground/75"}`}
+                        />
+                        <span className="font-semibold text-muted-foreground">
+                          {task.isGroupTask ? "Tugas Kelompok" : "Tugas Individu"}
+                        </span>
+                        {task.weightPercentage && (
+                          <span className="ml-auto text-[11px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-md">
+                            Bobot: {task.weightPercentage}%
+                          </span>
+                        )}
+                      </div>
+
+                      {/* My Part (if Group Task) */}
+                      {task.isGroupTask && task.myPart && (
+                        <div className="pl-[22px] text-[11px] text-muted-foreground italic leading-tight">
+                          Bagian saya: {task.myPart}
+                        </div>
+                      )}
+
+                      {/* Submission Info */}
+                      <div className="flex items-center gap-2 text-xs">
+                        <HugeiconsIcon icon={Link01Icon} className="h-3.5 w-3.5 text-muted-foreground/75" />
+                        <span className="text-muted-foreground">
+                          Metode: <strong className="font-bold">{task.submissionMethod}</strong>
+                        </span>
+                        {task.submissionLink && (
+                          <a
+                            href={task.submissionLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="ml-auto text-[11px] font-semibold text-primary hover:underline flex items-center gap-0.5"
+                          >
+                            Buka Link →
+                          </a>
+                        )}
+                      </div>
+                    </div>
                   </CardContent>
                   <CardFooter className="pt-3 border-t border-border/40 flex justify-between items-center gap-2 bg-muted/10">
                     {!isDone ? (
@@ -653,6 +726,7 @@ export default function TasksPage() {
                   required
                 />
               </Field>
+
               <div className="grid grid-cols-2 gap-4">
                 <Field>
                   <FieldLabel>Status</FieldLabel>
@@ -691,6 +765,69 @@ export default function TasksPage() {
                   </Select>
                 </Field>
               </div>
+              
+              <div className="flex items-center gap-2 mt-1">
+                <Checkbox
+                  id="isGroupTask"
+                  checked={isGroupTask}
+                  onCheckedChange={(checked) => setIsGroupTask(!!checked)}
+                />
+                <label htmlFor="isGroupTask" className="text-xs font-semibold select-none cursor-pointer">
+                  Tugas Kelompok
+                </label>
+              </div>
+
+              {isGroupTask && (
+                <Field>
+                  <FieldLabel className="text-xs font-semibold">Porsi Tugas Saya</FieldLabel>
+                  <Input
+                    value={myPart}
+                    onChange={(e) => setMyPart(e.target.value)}
+                    placeholder="e.g. Desain UI & frontend"
+                    className="h-9 text-sm"
+                  />
+                </Field>
+              )}
+
+              <div className="grid grid-cols-2 gap-3">
+                <Field>
+                  <FieldLabel className="text-xs font-semibold">Bobot Nilai (%)</FieldLabel>
+                  <Input
+                    type="number"
+                    value={weightPercentage}
+                    onChange={(e) => setWeightPercentage(e.target.value)}
+                    placeholder="e.g. 15"
+                    className="h-9 text-sm"
+                  />
+                </Field>
+                <Field>
+                  <FieldLabel className="text-xs font-semibold">Metode Pengumpulan</FieldLabel>
+                  <Select value={submissionMethod} onValueChange={(v) => setSubmissionMethod(v || "OFFLINE")}>
+                    <SelectTrigger className="w-full h-9">
+                      <span data-slot="select-value" className="text-sm">{submissionMethod}</span>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        <SelectItem value="OFFLINE">Offline</SelectItem>
+                        <SelectItem value="GFORM">Google Form</SelectItem>
+                        <SelectItem value="EMAIL">Email</SelectItem>
+                        <SelectItem value="LMS">LMS Kampus</SelectItem>
+                        <SelectItem value="UPLOAD">Upload</SelectItem>
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </Field>
+              </div>
+
+              <Field>
+                <FieldLabel className="text-xs font-semibold">Link Pengumpulan</FieldLabel>
+                <Input
+                  value={submissionLink}
+                  onChange={(e) => setSubmissionLink(e.target.value)}
+                  placeholder="e.g. https://lms.univ.ac.id/submit"
+                  className="h-9 text-sm"
+                />
+              </Field>
               <div className="flex gap-3 pt-4">
                 <Button type="button" variant="outline" className="w-1/2" onClick={() => setSheetOpen(false)}>
                   Cancel
