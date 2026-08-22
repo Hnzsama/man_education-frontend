@@ -228,9 +228,7 @@ export default function CalendarPage() {
 
       // Skip class schedules if date falls within a custom holiday
       const customHolidayInfo = customHolidays.find((ch: any) => {
-        const chStart = new Date(ch.startDate); chStart.setHours(0,0,0,0)
-        const chEnd = new Date(ch.endDate); chEnd.setHours(23,59,59,999)
-        return date >= chStart && date <= chEnd
+        return ds >= ch.startDate && ds <= ch.endDate
       })
       if (customHolidayInfo) {
         isHoliday = true
@@ -373,8 +371,8 @@ export default function CalendarPage() {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           name: hName,
-          startDate: new Date(hStart).toISOString(),
-          endDate: new Date(hEnd).toISOString(),
+          startDate: hStart,
+          endDate: hEnd,
         }),
       })
       if (!res.ok) { const d = await res.json(); throw new Error(d.message) }
@@ -609,9 +607,7 @@ export default function CalendarPage() {
               const isWeekend = i % 7 >= 5
               const holiday = holidays.find((h: any) => h.date === ds)
               const customHoliday = customHolidays.find((ch: any) => {
-                const chStart = new Date(ch.startDate); chStart.setHours(0,0,0,0)
-                const chEnd = new Date(ch.endDate); chEnd.setHours(23,59,59,999)
-                return cell.date >= chStart && cell.date <= chEnd
+                return ds >= ch.startDate && ds <= ch.endDate
               })
               const hasHoliday = holiday || customHoliday
 
@@ -764,9 +760,7 @@ export default function CalendarPage() {
               const ds = toDateStr(selectedDate);
               const holiday = holidays.find((h: any) => h.date === ds);
               const customHoliday = customHolidays.find((ch: any) => {
-                const chStart = new Date(ch.startDate); chStart.setHours(0,0,0,0)
-                const chEnd = new Date(ch.endDate); chEnd.setHours(23,59,59,999)
-                return selectedDate >= chStart && selectedDate <= chEnd
+                return ds >= ch.startDate && ds <= ch.endDate
               });
 
               if (holiday) {
@@ -1198,7 +1192,7 @@ export default function CalendarPage() {
                     <div className="min-w-0">
                       <p className="font-bold text-amber-600 dark:text-amber-400 truncate">{ch.name}</p>
                       <p className="text-[10px] text-muted-foreground mt-0.5">
-                        {new Date(ch.startDate).toLocaleDateString("id-ID", { day: "numeric", month: "short" })} - {new Date(ch.endDate).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
+                        {new Date(ch.startDate).toLocaleDateString("id-ID", { day: "numeric", month: "short", timeZone: "UTC" })} - {new Date(ch.endDate).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" })}
                       </p>
                     </div>
                     {userProfile?.id === ch.userId && (
