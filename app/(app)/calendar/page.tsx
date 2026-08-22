@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Field, FieldLabel } from "@/components/ui/field"
 import { Badge } from "@/components/ui/badge"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Sheet,
   SheetContent,
@@ -95,6 +96,18 @@ export default function CalendarPage() {
   const [fDeadline,    setFDeadline]    = React.useState("")
   const [fStatus,      setFStatus]      = React.useState("PENDING")
   const [fPriority,    setFPriority]    = React.useState("MEDIUM")
+
+  const [fIsGroupTask, setFIsGroupTask] = React.useState(false)
+  const [fMyPart, setFMyPart] = React.useState("")
+  const [fWeight, setFWeight] = React.useState("")
+  const [fSubMethod, setFSubMethod] = React.useState("OFFLINE")
+  const [fSubLink, setFSubLink] = React.useState("")
+
+  const [checklistItems, setChecklistItems] = React.useState<any[]>([])
+  const [newCheckTitle, setNewCheckTitle] = React.useState("")
+
+  const [quickAddTaskText, setQuickAddTaskText] = React.useState("")
+  const [quickAddLoading, setQuickAddLoading] = React.useState(false)
 
   // Confirm delete
   const [confirmOpen,  setConfirmOpen]  = React.useState(false)
@@ -299,6 +312,8 @@ export default function CalendarPage() {
     setEditingTask(null)
     setFTitle(""); setFDesc(""); setFCourseId("none")
     setFStatus("PENDING"); setFPriority("MEDIUM")
+    setFIsGroupTask(false); setFMyPart(""); setFWeight(""); setFSubMethod("OFFLINE"); setFSubLink("")
+    setChecklistItems([])
     const dl = date ? `${toDateStr(date)}T23:59` : ""
     setFDeadline(dl); setPrefillDate(dl)
     setSheetOpen(true)
@@ -312,6 +327,12 @@ export default function CalendarPage() {
     setFDeadline(new Date(task.deadline).toISOString().slice(0,16))
     setFStatus(task.status)
     setFPriority(task.priority)
+    setFIsGroupTask(task.isGroupTask || false)
+    setFMyPart(task.myPart || "")
+    setFWeight(task.weightPercentage?.toString() || "")
+    setFSubMethod(task.submissionMethod || "OFFLINE")
+    setFSubLink(task.submissionLink || "")
+    setChecklistItems(task.checklist || [])
     setSheetOpen(true)
   }
 
@@ -335,6 +356,11 @@ export default function CalendarPage() {
           deadline: new Date(fDeadline).toISOString(),
           status: fStatus,
           priority: fPriority,
+          isGroupTask: fIsGroupTask,
+          myPart: fIsGroupTask ? fMyPart : undefined,
+          weightPercentage: fWeight ? parseInt(fWeight) : undefined,
+          submissionMethod: fSubMethod,
+          submissionLink: fSubLink || undefined,
         }),
       })
       if (!res.ok) { const d = await res.json(); throw new Error(d.message) }
@@ -359,6 +385,86 @@ export default function CalendarPage() {
       fetchData()
     } catch { toast.add({ type:"error", description:"Failed to delete task" }) }
     finally { setDeleteId(null); setConfirmOpen(false) }
+  }
+
+  const handleToggleCheckItem = async (itemId: string, isCompleted: boolean) => {
+    if (!editingTask) return
+    const token = getCookie("token")
+    if (!token) return
+    try {
+      const res = await fetch(`${API_URL}/api/tasks/${editingTask.id}/checklist/${itemId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ isCompleted }),
+      })
+      if (!res.ok) throw new Error("Failed to toggle item")
+      setChecklistItems(prev => prev.map(item => item.id === itemId ? { ...item, isCompleted } : item))
+      fetchData()
+    } catch (err: any) {
+      toast.add({ type: "error", description: err.message })
+    }
+  }
+
+  const handleDeleteCheckItem = async (itemId: string) => {
+    if (!editingTask) return
+    const token = getCookie("token")
+    if (!token) return
+    try {
+      const res = await fetch(`${API_URL}/api/tasks/${editingTask.id}/checklist/${itemId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) throw new Error("Failed to delete item")
+      setChecklistItems(prev => prev.filter(item => item.id !== itemId))
+      fetchData()
+    } catch (err: any) {
+      toast.add({ type: "error", description: err.message })
+    }
+  }
+
+  const handleAddCheckItem = async () => {
+    if (!editingTask || !newCheckTitle.trim()) return
+    const token = getCookie("token")
+    if (!token) return
+    try {
+      const res = await fetch(`${API_URL}/api/tasks/${editingTask.id}/checklist`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ title: newCheckTitle }),
+      })
+      if (!res.ok) throw new Error("Failed to add item")
+      const newItem = await res.json()
+      setChecklistItems(prev => [...prev, newItem])
+      setNewCheckTitle("")
+      fetchData()
+    } catch (err: any) {
+      toast.add({ type: "error", description: err.message })
+    }
+  }
+
+  const handleQuickAddSubmit = async () => {
+    if (!quickAddTaskText.trim()) return
+    setQuickAddLoading(true)
+    const token = getCookie("token")
+    if (!token) return
+    try {
+      const res = await fetch(`${API_URL}/api/tasks/quick-add`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ text: quickAddTaskText }),
+      })
+      if (!res.ok) {
+        const errData = await res.json()
+        throw new Error(errData.message || "Failed to parse task")
+      }
+      toast.add({ type: "success", description: "Tugas berhasil ditambahkan via AI!" })
+      setQuickAddTaskText("")
+      fetchData()
+    } catch (err: any) {
+      toast.add({ type: "error", description: err.message })
+    } finally {
+      setQuickAddLoading(false)
+    }
   }
 
   const handleHolidaySubmit = async (e: React.FormEvent) => {
@@ -562,7 +668,22 @@ export default function CalendarPage() {
             Drag tasks to reschedule · Click a date to add · Click a task to edit.
           </p>
         </div>
-        <div className="flex items-center gap-2 self-end sm:self-auto">
+        <div className="flex items-center gap-2 self-end sm:self-auto flex-wrap">
+          <div className="flex items-center gap-1.5 border rounded-xl bg-card px-2.5 h-8 shadow-xs max-w-[280px] overflow-hidden">
+            <input
+              value={quickAddTaskText}
+              onChange={(e) => setQuickAddTaskText(e.target.value)}
+              placeholder="Quick Add: Tugas Statistika besok 8 malam"
+              className="border-0 bg-transparent h-full text-xs p-0 focus-visible:ring-0 focus-visible:outline-none min-w-[180px] w-full"
+            />
+            <button
+              onClick={handleQuickAddSubmit}
+              disabled={quickAddLoading}
+              className="h-6 w-6 rounded-lg hover:bg-muted flex items-center justify-center shrink-0"
+            >
+              <HugeiconsIcon icon={Add01Icon} className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+            </button>
+          </div>
           <Button variant="outline" size="sm" className="h-8 px-3 gap-1.5 text-xs font-semibold" onClick={() => setHolidaySheetOpen(true)}>
             <HugeiconsIcon icon={Calendar02Icon} className="h-3.5 w-3.5" />
             Atur Libur
@@ -1113,6 +1234,106 @@ export default function CalendarPage() {
                   </SelectContent>
                 </Select>
               </Field>
+             )}
+
+            <div className="flex items-center gap-2 mt-1">
+              <Checkbox
+                id="isGroupTask"
+                checked={fIsGroupTask}
+                onCheckedChange={(checked) => setFIsGroupTask(!!checked)}
+              />
+              <label htmlFor="isGroupTask" className="text-xs font-semibold select-none cursor-pointer">
+                Tugas Kelompok
+              </label>
+            </div>
+
+            {fIsGroupTask && (
+              <Field>
+                <FieldLabel className="text-xs font-semibold">Porsi Tugas Saya</FieldLabel>
+                <Input
+                  value={fMyPart}
+                  onChange={(e) => setFMyPart(e.target.value)}
+                  placeholder="e.g. Desain UI & frontend"
+                  className="h-9 text-sm"
+                />
+              </Field>
+            )}
+
+            <div className="grid grid-cols-2 gap-3">
+              <Field>
+                <FieldLabel className="text-xs font-semibold">Bobot Nilai (%)</FieldLabel>
+                <Input
+                  type="number"
+                  value={fWeight}
+                  onChange={(e) => setFWeight(e.target.value)}
+                  placeholder="e.g. 15"
+                  className="h-9 text-sm"
+                />
+              </Field>
+              <Field>
+                <FieldLabel className="text-xs font-semibold">Metode Pengumpulan</FieldLabel>
+                <Select value={fSubMethod} onValueChange={(v: string | null) => setFSubMethod(v ?? "OFFLINE")}>
+                  <SelectTrigger className="w-full h-9">
+                    <span data-slot="select-value" className="text-sm">{fSubMethod}</span>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectItem value="OFFLINE">Offline</SelectItem>
+                      <SelectItem value="GFORM">Google Form</SelectItem>
+                      <SelectItem value="EMAIL">Email</SelectItem>
+                      <SelectItem value="LMS">LMS Kampus</SelectItem>
+                      <SelectItem value="UPLOAD">Upload</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </Field>
+            </div>
+
+            <Field>
+              <FieldLabel className="text-xs font-semibold">Link Pengumpulan</FieldLabel>
+              <Input
+                value={fSubLink}
+                onChange={(e) => setFSubLink(e.target.value)}
+                placeholder="e.g. https://lms.univ.ac.id/submit"
+                className="h-9 text-sm"
+              />
+            </Field>
+
+            {editingTask && (
+              <div className="border-t border-border/40 pt-4 flex flex-col gap-2">
+                <h4 className="text-xs font-bold text-foreground/75 uppercase tracking-wider">Sub-Todo Checklist</h4>
+                <div className="space-y-2">
+                  {checklistItems.map((item: any) => (
+                    <div key={item.id} className="flex items-center justify-between p-2 rounded-xl border bg-card text-xs">
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          checked={item.isCompleted}
+                          onCheckedChange={(checked) => handleToggleCheckItem(item.id, !!checked)}
+                        />
+                        <span className={item.isCompleted ? "line-through text-muted-foreground" : ""}>{item.title}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteCheckItem(item.id)}
+                        className="text-muted-foreground hover:text-destructive p-1"
+                      >
+                        <HugeiconsIcon icon={Delete02Icon} className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center gap-2 mt-1">
+                  <input
+                    value={newCheckTitle}
+                    onChange={(e) => setNewCheckTitle(e.target.value)}
+                    placeholder="Tambah checklist baru..."
+                    className="h-8 text-xs border rounded-xl px-2.5 bg-background flex-1 focus-visible:outline-none"
+                  />
+                  <Button type="button" size="sm" className="h-8 text-xs" onClick={handleAddCheckItem}>
+                    Tambah
+                  </Button>
+                </div>
+              </div>
             )}
 
             <div className="flex gap-2 mt-2 pt-4 border-t border-border/40">
