@@ -7,6 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Notification01Icon, Time02Icon, Task01Icon, Add01Icon, Cancel01Icon } from "@hugeicons/core-free-icons";
 
@@ -63,10 +70,10 @@ export function RemindersSettings({ initialData, onSaveSuccess }: RemindersSetti
   const userRole = initialData?.userRole ?? "CLASS";
   
   const [newScheduleOffset, setNewScheduleOffset] = React.useState("");
-  const [scheduleUnit, setScheduleUnit] = React.useState<"hours" | "minutes">("hours");
+  const [scheduleUnit, setScheduleUnit] = React.useState<"days" | "hours" | "minutes">("hours");
   
   const [newTaskOffset, setNewTaskOffset] = React.useState("");
-  const [taskUnit, setTaskUnit] = React.useState<"hours" | "minutes">("hours");
+  const [taskUnit, setTaskUnit] = React.useState<"days" | "hours" | "minutes">("hours");
 
   const [loading, setLoading] = React.useState(false);
   const [message, setMessage] = React.useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -126,7 +133,12 @@ export function RemindersSettings({ initialData, onSaveSuccess }: RemindersSetti
   const addScheduleOffset = () => {
     const rawVal = parseInt(newScheduleOffset, 10);
     if (!isNaN(rawVal) && rawVal > 0) {
-      const val = scheduleUnit === "hours" ? rawVal * 60 : rawVal;
+      let val = rawVal;
+      if (scheduleUnit === "days") {
+        val = rawVal * 1440;
+      } else if (scheduleUnit === "hours") {
+        val = rawVal * 60;
+      }
       if (!scheduleReminderOffsets.includes(val)) {
         setScheduleReminderOffsets([...scheduleReminderOffsets, val].sort((a, b) => b - a));
         setNewScheduleOffset("");
@@ -141,7 +153,12 @@ export function RemindersSettings({ initialData, onSaveSuccess }: RemindersSetti
   const addTaskOffset = () => {
     const rawVal = parseInt(newTaskOffset, 10);
     if (!isNaN(rawVal) && rawVal > 0) {
-      const val = taskUnit === "hours" ? rawVal * 60 : rawVal;
+      let val = rawVal;
+      if (taskUnit === "days") {
+        val = rawVal * 1440;
+      } else if (taskUnit === "hours") {
+        val = rawVal * 60;
+      }
       if (!taskReminderOffsets.includes(val)) {
         setTaskReminderOffsets([...taskReminderOffsets, val].sort((a, b) => b - a));
         setNewTaskOffset("");
@@ -154,6 +171,9 @@ export function RemindersSettings({ initialData, onSaveSuccess }: RemindersSetti
   };
 
   const formatOffset = (val: number) => {
+    if (val % 1440 === 0) {
+      return `${val / 1440} Hari`;
+    }
     if (val % 60 === 0) {
       return `${val / 60} Jam`;
     }
@@ -334,15 +354,20 @@ export function RemindersSettings({ initialData, onSaveSuccess }: RemindersSetti
               disabled={!remindersEnabled}
               className="h-9 w-32"
             />
-            <select
+            <Select
               value={scheduleUnit}
-              onChange={(e: any) => setScheduleUnit(e.target.value)}
+              onValueChange={(val: any) => setScheduleUnit(val)}
               disabled={!remindersEnabled}
-              className="h-9 rounded-lg border border-input bg-background px-3 py-1 text-sm shadow-xs focus-visible:outline-hidden"
             >
-              <option value="hours">Jam</option>
-              <option value="minutes">Menit</option>
-            </select>
+              <SelectTrigger className="h-9 w-24">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="days">Hari</SelectItem>
+                <SelectItem value="hours">Jam</SelectItem>
+                <SelectItem value="minutes">Menit</SelectItem>
+              </SelectContent>
+            </Select>
             <Button
               type="button"
               variant="outline"
@@ -392,15 +417,20 @@ export function RemindersSettings({ initialData, onSaveSuccess }: RemindersSetti
               disabled={!remindersEnabled}
               className="h-9 w-32"
             />
-            <select
+            <Select
               value={taskUnit}
-              onChange={(e: any) => setTaskUnit(e.target.value)}
+              onValueChange={(val: any) => setTaskUnit(val)}
               disabled={!remindersEnabled}
-              className="h-9 rounded-lg border border-input bg-background px-3 py-1 text-sm shadow-xs focus-visible:outline-hidden"
             >
-              <option value="hours">Jam</option>
-              <option value="minutes">Menit</option>
-            </select>
+              <SelectTrigger className="h-9 w-24">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="days">Hari</SelectItem>
+                <SelectItem value="hours">Jam</SelectItem>
+                <SelectItem value="minutes">Menit</SelectItem>
+              </SelectContent>
+            </Select>
             <Button
               type="button"
               variant="outline"
