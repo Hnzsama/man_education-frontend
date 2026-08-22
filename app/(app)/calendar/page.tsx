@@ -72,6 +72,7 @@ export default function CalendarPage() {
   const [loading, setLoading] = React.useState(true)
   const [courseColorMap, setCourseColorMap] = React.useState<Record<string,number>>({})
   const [holidays, setHolidays] = React.useState<any[]>([])
+  const [customHolidays, setCustomHolidays] = React.useState<any[]>([])
 
   // DnD state
   const [draggingTaskId, setDraggingTaskId] = React.useState<string|null>(null)
@@ -94,20 +95,45 @@ export default function CalendarPage() {
   const [confirmOpen,  setConfirmOpen]  = React.useState(false)
   const [deleteId,     setDeleteId]     = React.useState<string|null>(null)
 
+  // Profile & Custom Holidays state
+  const [userProfile, setUserProfile] = React.useState<any|null>(null)
+  const [holidaySheetOpen, setHolidaySheetOpen] = React.useState(false)
+  const [hName, setHName] = React.useState("")
+  const [hStart, setHStart] = React.useState("")
+  const [hEnd, setHEnd] = React.useState("")
+  const [hLoading, setHLoading] = React.useState(false)
+
+  // Schedule Exceptions state
+  const [exceptionSheetOpen, setExceptionSheetOpen] = React.useState(false)
+  const [selectedSchedule, setSelectedSchedule] = React.useState<any|null>(null)
+  const [excType, setExcType] = React.useState<'CANCELLED' | 'MOVED' | 'NOTE'>('CANCELLED')
+  const [excNewStartTime, setExcNewStartTime] = React.useState("")
+  const [excNewEndTime, setExcNewEndTime] = React.useState("")
+  const [excNewRoom, setExcNewRoom] = React.useState("")
+  const [excNewLink, setExcNewLink] = React.useState("")
+  const [excNote, setExcNote] = React.useState("")
+  const [excLoading, setExcLoading] = React.useState(false)
+
   // ─── Data Fetch ─────────────────────────────────────────────
   const fetchData = React.useCallback(async () => {
     const token = getCookie("token")
     if (!token) { router.push("/login"); return }
     try {
-      const [semRes, tasksRes] = await Promise.all([
+      const [semRes, tasksRes, customHolidaysRes, profileRes] = await Promise.all([
         fetch(`${API_URL}/api/semesters`, { headers: { Authorization: `Bearer ${token}` } }),
         fetch(`${API_URL}/api/tasks`,     { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API_URL}/api/custom-holidays`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API_URL}/api/users/me`, { headers: { Authorization: `Bearer ${token}` } }),
       ])
-      if (!semRes.ok || !tasksRes.ok) throw new Error("Failed to load data")
+      if (!semRes.ok || !tasksRes.ok || !customHolidaysRes.ok || !profileRes.ok) throw new Error("Failed to load data")
       const semsData  = await semRes.json()
       const tasksData = await tasksRes.json()
+      const customHolidaysData = await customHolidaysRes.json()
+      const profileData = await profileRes.json()
       setSemesters(semsData)
       setTasks(tasksData)
+      setCustomHolidays(customHolidaysData)
+      setUserProfile(profileData)
 
       const courses: any[] = []
       const colorMap: Record<string,number> = {}
@@ -200,12 +226,56 @@ export default function CalendarPage() {
         isHoliday = true
       }
 
-      // Render class pills within the active semester's date range, passing isHoliday state
+      // Skip class schedules if date falls within a custom holiday
+      const customHolidayInfo = customHolidays.find((ch: any) => {
+        const chStart = new Date(ch.startDate); chStart.setHours(0,0,0,0)
+        const chEnd = new Date(ch.endDate); chEnd.setHours(23,59,59,999)
+        return date >= chStart && date <= chEnd
+      })
+      if (customHolidayInfo) {
+        isHoliday = true
+      }
+
+      // Render class pills within the active semester's date range, passing isHoliday state and exceptions
       if (date >= semStart && date <= semEnd) {
         activeSemester.courses?.forEach((c: any) => {
           c.schedules?.forEach((sc: any) => {
-            if (sc.dayOfWeek === dow)
-              schedules.push({ id:`${sc.id}-${ds}`, type:"schedule", title:c.name, code:c.code, time:sc.startTime, courseId:c.id, isHoliday })
+            if (sc.dayOfWeek === dow) {
+              const exception = sc.exceptions?.find((e: any) => e.date === ds)
+              
+              let isCancelled = false
+              let targetTime = sc.startTime
+              let targetRoom = sc.room
+              let targetLink = sc.link
+              let exceptionInfo = null
+
+              if (exception) {
+                exceptionInfo = exception
+                if (exception.type === 'CANCELLED') {
+                  isCancelled = true
+                } else if (exception.type === 'MOVED') {
+                  if (exception.newStartTime) targetTime = exception.newStartTime
+                  if (exception.newRoom) targetRoom = exception.newRoom
+                  if (exception.newLink) targetLink = exception.newLink
+                }
+              }
+
+              schedules.push({
+                id: `${sc.id}-${ds}`,
+                type: "schedule",
+                title: c.name,
+                code: c.code,
+                time: targetTime,
+                endTime: sc.endTime,
+                room: targetRoom,
+                link: targetLink,
+                courseId: c.id,
+                isHoliday: isHoliday || isCancelled,
+                isCancelled,
+                exception: exceptionInfo,
+                rawSchedule: sc,
+              })
+            }
           })
         })
       }
@@ -219,7 +289,7 @@ export default function CalendarPage() {
     })
 
     return [...schedules, ...dayTasks]
-  }, [semesters, tasks])
+  }, [semesters, tasks, holidays, customHolidays])
 
   // ─── Form Helpers ────────────────────────────────────────────
   const openAddSheet = (date?: Date) => {
@@ -286,6 +356,105 @@ export default function CalendarPage() {
       fetchData()
     } catch { toast.add({ type:"error", description:"Failed to delete task" }) }
     finally { setDeleteId(null); setConfirmOpen(false) }
+  }
+
+  const handleHolidaySubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!hName || !hStart || !hEnd) {
+      toast.add({ type: "error", description: "Lengkapi semua field libur!" })
+      return
+    }
+    setHLoading(true)
+    const token = getCookie("token")
+    if (!token) return
+    try {
+      const res = await fetch(`${API_URL}/api/custom-holidays`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          name: hName,
+          startDate: new Date(hStart).toISOString(),
+          endDate: new Date(hEnd).toISOString(),
+        }),
+      })
+      if (!res.ok) { const d = await res.json(); throw new Error(d.message) }
+      toast.add({ type: "success", description: "Libur kampus berhasil ditambahkan!" })
+      setHName(""); setHStart(""); setHEnd("")
+      fetchData()
+    } catch (err: any) {
+      toast.add({ type: "error", description: err.message || "Gagal menyimpan libur" })
+    } finally { setHLoading(false) }
+  }
+
+  const handleHolidayDelete = async (id: string) => {
+    const token = getCookie("token")
+    if (!token) return
+    try {
+      const res = await fetch(`${API_URL}/api/custom-holidays/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) { const d = await res.json(); throw new Error(d.message) }
+      toast.add({ type: "success", description: "Libur kampus dihapus!" })
+      fetchData()
+    } catch (err: any) {
+      toast.add({ type: "error", description: err.message || "Gagal menghapus libur" })
+    }
+  }
+
+  const handleExceptionSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedSchedule) return
+    setExcLoading(true)
+    const token = getCookie("token")
+    if (!token) return
+
+    const { courseId, rawSchedule } = selectedSchedule
+    const scheduleId = rawSchedule.id
+
+    try {
+      const res = await fetch(`${API_URL}/api/courses/${courseId}/schedules/${scheduleId}/exceptions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          date: toDateStr(selectedDate),
+          type: excType,
+          newStartTime: excType === "MOVED" ? excNewStartTime : undefined,
+          newEndTime: excType === "MOVED" ? excNewEndTime : undefined,
+          newRoom: excType === "MOVED" ? excNewRoom : undefined,
+          newLink: excType === "MOVED" ? excNewLink : undefined,
+          note: excNote || undefined,
+        }),
+      })
+      if (!res.ok) { const d = await res.json(); throw new Error(d.message) }
+      toast.add({ type: "success", description: "Perubahan jadwal disimpan!" })
+      setExceptionSheetOpen(false)
+      fetchData()
+    } catch (err: any) {
+      toast.add({ type: "error", description: err.message || "Gagal menyimpan perubahan" })
+    } finally { setExcLoading(false) }
+  }
+
+  const handleExceptionDelete = async (exceptionId: string) => {
+    if (!selectedSchedule) return
+    const token = getCookie("token")
+    if (!token) return
+    
+    const { courseId, rawSchedule } = selectedSchedule
+    const scheduleId = rawSchedule.id
+
+    try {
+      const res = await fetch(`${API_URL}/api/courses/${courseId}/schedules/${scheduleId}/exceptions/${exceptionId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) { const d = await res.json(); throw new Error(d.message) }
+      toast.add({ type: "success", description: "Perubahan jadwal dibatalkan (kembali ke asal)!" })
+      setExceptionSheetOpen(false)
+      fetchData()
+    } catch (err: any) {
+      toast.add({ type: "error", description: err.message || "Gagal menghapus perubahan" })
+    }
   }
 
   // ─── DnD Handlers ────────────────────────────────────────────
@@ -391,6 +560,10 @@ export default function CalendarPage() {
           </p>
         </div>
         <div className="flex items-center gap-2 self-end sm:self-auto">
+          <Button variant="outline" size="sm" className="h-8 px-3 gap-1.5 text-xs font-semibold" onClick={() => setHolidaySheetOpen(true)}>
+            <HugeiconsIcon icon={Calendar02Icon} className="h-3.5 w-3.5" />
+            Atur Libur
+          </Button>
           <Button size="sm" className="h-8 px-3 gap-1.5 text-xs font-semibold" onClick={() => openAddSheet()}>
             <HugeiconsIcon icon={Add01Icon} className="h-3.5 w-3.5" />
             New Task
@@ -435,6 +608,12 @@ export default function CalendarPage() {
               const isDrop  = dropTargetDate === ds && draggingTaskId !== null
               const isWeekend = i % 7 >= 5
               const holiday = holidays.find((h: any) => h.date === ds)
+              const customHoliday = customHolidays.find((ch: any) => {
+                const chStart = new Date(ch.startDate); chStart.setHours(0,0,0,0)
+                const chEnd = new Date(ch.endDate); chEnd.setHours(23,59,59,999)
+                return cell.date >= chStart && cell.date <= chEnd
+              })
+              const hasHoliday = holiday || customHoliday
 
               return (
                 <div
@@ -442,7 +621,7 @@ export default function CalendarPage() {
                   onClick={() => cell.current && setSelectedDate(cell.date)}
                   className={`min-h-[130px] flex flex-col p-1.5 gap-1 transition-all group relative cursor-pointer
                     ${!cell.current ? "bg-muted/10 opacity-40 pointer-events-none" : isWeekend ? "bg-muted/5 hover:bg-muted/10" : "bg-card hover:bg-muted/5"}
-                    ${holiday ? "!bg-muted/20 opacity-80" : ""}
+                    ${hasHoliday ? "!bg-muted/20 opacity-80" : ""}
                     ${isToday ? "!bg-primary/5 ring-[1.5px] ring-inset ring-primary/40" : ""}
                     ${isSelected ? "ring-[1.5px] ring-inset ring-primary/50 z-10" : ""}
                     ${isDrop ? "!bg-primary/10 ring-[1.5px] ring-inset ring-primary/60 scale-[1.01]" : ""}
@@ -457,6 +636,10 @@ export default function CalendarPage() {
                       <span className="text-[9px] font-semibold text-rose-500 max-w-[70%] truncate" title={holiday.description}>
                         🎈 {holiday.description}
                       </span>
+                    ) : customHoliday ? (
+                      <span className="text-[9px] font-semibold text-amber-600 dark:text-amber-400 max-w-[70%] truncate" title={customHoliday.name}>
+                        🏫 {customHoliday.name}
+                      </span>
                     ) : (
                       <button
                         className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary h-5 w-5 flex items-center justify-center rounded"
@@ -467,7 +650,7 @@ export default function CalendarPage() {
                       </button>
                     )}
                     <span className={`text-xs font-bold flex h-6 w-6 items-center justify-center rounded-full
-                      ${isToday ? "bg-primary text-primary-foreground shadow" : holiday ? "text-rose-500 bg-rose-500/10" : "text-foreground/60"}`}>
+                      ${isToday ? "bg-primary text-primary-foreground shadow" : hasHoliday ? "text-rose-500 bg-rose-500/10" : "text-foreground/60"}`}>
                       {cell.date.getDate()}
                     </span>
                   </div>
@@ -580,6 +763,12 @@ export default function CalendarPage() {
             {(() => {
               const ds = toDateStr(selectedDate);
               const holiday = holidays.find((h: any) => h.date === ds);
+              const customHoliday = customHolidays.find((ch: any) => {
+                const chStart = new Date(ch.startDate); chStart.setHours(0,0,0,0)
+                const chEnd = new Date(ch.endDate); chEnd.setHours(23,59,59,999)
+                return selectedDate >= chStart && selectedDate <= chEnd
+              });
+
               if (holiday) {
                 return (
                   <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-500 text-xs font-semibold flex items-start gap-1.5 animate-in fade-in duration-200">
@@ -587,6 +776,18 @@ export default function CalendarPage() {
                     <div>
                       <p className="font-bold">Hari Libur</p>
                       <p className="text-[11px] font-normal leading-normal">{holiday.description}</p>
+                    </div>
+                  </div>
+                );
+              }
+
+              if (customHoliday) {
+                return (
+                  <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-semibold flex items-start gap-1.5 animate-in fade-in duration-200">
+                    <span className="text-sm">🏫</span>
+                    <div>
+                      <p className="font-bold">Libur Kampus</p>
+                      <p className="text-[11px] font-normal leading-normal">{customHoliday.name}</p>
                     </div>
                   </div>
                 );
@@ -612,19 +813,51 @@ export default function CalendarPage() {
                       return (
                         <div
                           key={item.id}
-                          className={`flex items-center gap-2 rounded-xl p-2.5 text-xs font-semibold border transition-all
+                          onClick={() => {
+                            if (userProfile?.role === 'CLASS') {
+                              setSelectedSchedule(item)
+                              setExcType(item.exception?.type ?? "CANCELLED")
+                              setExcNewStartTime(item.exception?.newStartTime ?? item.time)
+                              setExcNewEndTime(item.exception?.newEndTime ?? item.endTime ?? "")
+                              setExcNewRoom(item.exception?.newRoom ?? item.room ?? "")
+                              setExcNewLink(item.exception?.newLink ?? item.link ?? "")
+                              setExcNote(item.exception?.note ?? "")
+                              setExceptionSheetOpen(true)
+                            }
+                          }}
+                          className={`flex flex-col gap-1 rounded-xl p-2.5 text-xs font-semibold border transition-all
+                            ${userProfile?.role === 'CLASS' ? 'cursor-pointer hover:ring-[1.5px] hover:ring-primary/40' : ''}
                             ${item.isHoliday 
-                              ? "bg-muted text-muted-foreground/50 border-muted-foreground/10 opacity-50 line-through" 
+                              ? "bg-muted text-muted-foreground/50 border-muted-foreground/10 opacity-50" 
                               : `${c.bg} ${c.text} ${c.border}`
                             }`}
                         >
-                          <HugeiconsIcon icon={Clock01Icon} className="h-3.5 w-3.5 shrink-0 opacity-70" />
-                          <div className="flex-1 min-w-0">
-                            <p className="truncate font-bold">{item.title}</p>
-                            <p className="text-[10px] opacity-70">
-                              {item.time} WIB {item.isHoliday && "(Libur)"}
-                            </p>
+                          <div className="flex items-center gap-2">
+                            <HugeiconsIcon icon={Clock01Icon} className="h-3.5 w-3.5 shrink-0 opacity-70" />
+                            <div className="flex-1 min-w-0">
+                              <p className={`truncate font-bold ${item.isCancelled ? 'line-through opacity-60' : ''}`}>
+                                {item.exception?.type === 'CANCELLED' && '❌ [Batal] '}
+                                {item.exception?.type === 'MOVED' && '🔄 [Pindah] '}
+                                {item.title}
+                              </p>
+                              <p className="text-[10px] opacity-70">
+                                {item.time} WIB 
+                                {item.isCancelled && " (Batal)"} 
+                                {item.isHoliday && !item.isCancelled && " (Libur)"}
+                                {item.room && ` · 🏫 ${item.room}`}
+                              </p>
+                            </div>
                           </div>
+                          {item.exception?.note && (
+                            <p className="text-[9.5px] text-rose-500 font-normal mt-0.5 border-t border-dashed border-rose-500/20 pt-1">
+                              📝 Catatan: {item.exception.note}
+                            </p>
+                          )}
+                          {item.link && (
+                            <a href={item.link} target="_blank" rel="noopener noreferrer" className="text-[9.5px] text-blue-500 hover:underline mt-0.5 block font-normal">
+                              🔗 Link Kelas
+                            </a>
+                          )}
                         </div>
                       );
                     }
@@ -903,6 +1136,199 @@ export default function CalendarPage() {
         onConfirm={handleDeleteConfirm}
         onClose={() => { setConfirmOpen(false); setDeleteId(null) }}
       />
+
+      {/* ── Custom Holiday Sheet ─────────────────────────── */}
+      <Sheet open={holidaySheetOpen} onOpenChange={setHolidaySheetOpen}>
+        <SheetContent side="right" className="w-[400px] sm:w-[440px] overflow-y-auto font-sans flex flex-col">
+          <SheetHeader className="pb-4 border-b border-border/40">
+            <SheetTitle className="text-base">Atur Libur Kampus</SheetTitle>
+            <SheetDescription className="text-xs">
+              Tambahkan libur kampus kustom berjangka waktu.
+            </SheetDescription>
+          </SheetHeader>
+
+          {/* Form to add custom holiday */}
+          <form onSubmit={handleHolidaySubmit} className="flex flex-col gap-4 pt-4 px-6 pb-4 border-b border-border/40">
+            <Field>
+              <FieldLabel className="text-xs font-semibold">Nama Hari Libur *</FieldLabel>
+              <Input
+                value={hName}
+                onChange={(e: any) => setHName(e.target.value)}
+                placeholder="e.g. Libur Semester, Libur Lebaran"
+                className="h-9 text-sm"
+                required
+              />
+            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field>
+                <FieldLabel className="text-xs font-semibold">Mulai Tanggal *</FieldLabel>
+                <Input
+                  type="date"
+                  value={hStart}
+                  onChange={(e: any) => setHStart(e.target.value)}
+                  className="h-9 text-sm"
+                  required
+                />
+              </Field>
+              <Field>
+                <FieldLabel className="text-xs font-semibold">Sampai Tanggal *</FieldLabel>
+                <Input
+                  type="date"
+                  value={hEnd}
+                  onChange={(e: any) => setHEnd(e.target.value)}
+                  className="h-9 text-sm"
+                  required
+                />
+              </Field>
+            </div>
+            <Button type="submit" className="w-full h-9 text-sm" disabled={hLoading}>
+              {hLoading ? "Menyimpan…" : "Tambah Hari Libur"}
+            </Button>
+          </form>
+
+          {/* List of custom holidays */}
+          <div className="flex-1 p-6 flex flex-col gap-3">
+            <h4 className="text-xs font-bold text-foreground/70 uppercase tracking-wider">Daftar Libur Anda</h4>
+            {customHolidays.length === 0 ? (
+              <p className="text-xs text-muted-foreground text-center py-6">Belum ada hari libur kustom.</p>
+            ) : (
+              <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+                {customHolidays.map((ch: any) => (
+                  <div key={ch.id} className="flex items-center justify-between p-2.5 rounded-xl border bg-card text-xs">
+                    <div className="min-w-0">
+                      <p className="font-bold text-amber-600 dark:text-amber-400 truncate">{ch.name}</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                        {new Date(ch.startDate).toLocaleDateString("id-ID", { day: "numeric", month: "short" })} - {new Date(ch.endDate).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
+                      </p>
+                    </div>
+                    {userProfile?.id === ch.userId && (
+                      <button
+                        onClick={() => handleHolidayDelete(ch.id)}
+                        className="text-muted-foreground hover:text-destructive cursor-pointer p-1 animate-in fade-in"
+                        title="Hapus"
+                      >
+                        <HugeiconsIcon icon={Delete02Icon} className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* ── Schedule Exception Sheet ──────────────────────── */}
+      <Sheet open={exceptionSheetOpen} onOpenChange={setExceptionSheetOpen}>
+        <SheetContent side="right" className="w-[400px] sm:w-[440px] overflow-y-auto font-sans flex flex-col">
+          <SheetHeader className="pb-4 border-b border-border/40">
+            <SheetTitle className="text-base">Perubahan Jadwal Mendadak</SheetTitle>
+            <SheetDescription className="text-xs">
+              Buat penyesuaian khusus (Batal/Pindah) untuk jadwal kuliah hari ini.
+            </SheetDescription>
+          </SheetHeader>
+
+          {selectedSchedule && (
+            <form onSubmit={handleExceptionSubmit} className="flex flex-col gap-4 pt-4 px-6 pb-6 flex-1">
+              <div className="p-3 rounded-xl border bg-primary/5 text-xs">
+                <p className="font-bold text-primary">{selectedSchedule.title}</p>
+                <p className="text-muted-foreground mt-0.5">Jadwal Asal: {selectedSchedule.rawSchedule.startTime} WIB @ {selectedSchedule.rawSchedule.room || "-"}</p>
+                <p className="text-muted-foreground">Hari ini: {selectedDate.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</p>
+              </div>
+
+              <Field>
+                <FieldLabel className="text-xs font-semibold">Status Perubahan Jadwal *</FieldLabel>
+                <Select value={excType} onValueChange={(v: any) => setExcType(v)}>
+                  <SelectTrigger className="w-full h-9">
+                    <span data-slot="select-value" className="text-sm">
+                      {excType === "CANCELLED" ? "❌ Dibatalkan (Libur)" : excType === "MOVED" ? "🔄 Dipindahkan" : "📝 Catatan Info"}
+                    </span>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectItem value="CANCELLED">❌ Dibatalkan (Libur)</SelectItem>
+                      <SelectItem value="MOVED">🔄 Dipindahkan</SelectItem>
+                      <SelectItem value="NOTE">📝 Catatan Info</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </Field>
+
+              {excType === "MOVED" && (
+                <>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field>
+                      <FieldLabel className="text-xs font-semibold">Jam Mulai Baru *</FieldLabel>
+                      <Input
+                        type="time"
+                        value={excNewStartTime}
+                        onChange={(e: any) => setExcNewStartTime(e.target.value)}
+                        className="h-9 text-sm"
+                        required
+                      />
+                    </Field>
+                    <Field>
+                      <FieldLabel className="text-xs font-semibold">Jam Selesai Baru</FieldLabel>
+                      <Input
+                        type="time"
+                        value={excNewEndTime}
+                        onChange={(e: any) => setExcNewEndTime(e.target.value)}
+                        className="h-9 text-sm"
+                      />
+                    </Field>
+                  </div>
+                  <Field>
+                    <FieldLabel className="text-xs font-semibold">Ruangan Baru</FieldLabel>
+                    <Input
+                      value={excNewRoom}
+                      onChange={(e: any) => setExcNewRoom(e.target.value)}
+                      placeholder="e.g. Lab Komputer 3"
+                      className="h-9 text-sm"
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel className="text-xs font-semibold">Link Kelas Baru (Online)</FieldLabel>
+                    <Input
+                      value={excNewLink}
+                      onChange={(e: any) => setExcNewLink(e.target.value)}
+                      placeholder="e.g. https://zoom.us/..."
+                      className="h-9 text-sm"
+                    />
+                  </Field>
+                </>
+              )}
+
+              <Field>
+                <FieldLabel className="text-xs font-semibold">Catatan / Alasan Perubahan</FieldLabel>
+                <Input
+                  value={excNote}
+                  onChange={(e: any) => setExcNote(e.target.value)}
+                  placeholder="e.g. Dosen berhalangan hadir, kelas pengganti jam 10"
+                  className="h-9 text-sm"
+                />
+              </Field>
+
+              <div className="flex gap-2 mt-2 pt-4 border-t border-border/40">
+                <Button type="submit" className="flex-1 h-9 text-sm" disabled={excLoading}>
+                  {excLoading ? "Menyimpan…" : "Simpan Perubahan"}
+                </Button>
+                {selectedSchedule.exception && (
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="icon"
+                    className="h-9 w-9 shrink-0 animate-in fade-in"
+                    title="Batalkan Perubahan Jadwal"
+                    onClick={() => handleExceptionDelete(selectedSchedule.exception.id)}
+                  >
+                    <HugeiconsIcon icon={Delete02Icon} className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            </form>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }
