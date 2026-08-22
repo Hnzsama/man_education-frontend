@@ -486,7 +486,7 @@ export default function CalendarPage() {
                           <div key={item.id}
                             className={`flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold border cursor-default leading-tight
                               ${item.isHoliday 
-                                ? "bg-muted text-muted-foreground border-muted-foreground/15 opacity-65" 
+                                ? "bg-muted text-muted-foreground/50 border-muted-foreground/10 opacity-50 line-through" 
                                 : `${c.bg} ${c.text} ${c.border}`
                               }`}
                           >
@@ -612,12 +612,18 @@ export default function CalendarPage() {
                       return (
                         <div
                           key={item.id}
-                          className={`flex items-center gap-2 rounded-xl p-2.5 text-xs font-semibold border ${c.bg} ${c.text} ${c.border}`}
+                          className={`flex items-center gap-2 rounded-xl p-2.5 text-xs font-semibold border transition-all
+                            ${item.isHoliday 
+                              ? "bg-muted text-muted-foreground/50 border-muted-foreground/10 opacity-50 line-through" 
+                              : `${c.bg} ${c.text} ${c.border}`
+                            }`}
                         >
                           <HugeiconsIcon icon={Clock01Icon} className="h-3.5 w-3.5 shrink-0 opacity-70" />
                           <div className="flex-1 min-w-0">
                             <p className="truncate font-bold">{item.title}</p>
-                            <p className="text-[10px] opacity-70">{item.time} WIB</p>
+                            <p className="text-[10px] opacity-70">
+                              {item.time} WIB {item.isHoliday && "(Libur)"}
+                            </p>
                           </div>
                         </div>
                       );
