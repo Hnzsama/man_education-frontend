@@ -37,6 +37,9 @@ import {
 } from "@hugeicons/core-free-icons"
 import { toast } from "@/components/ui/toast"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { format } from "date-fns"
 
 function getCookie(name: string) {
   if (typeof document === "undefined") return undefined
@@ -1154,25 +1157,45 @@ export default function CalendarPage() {
               />
             </Field>
             <div className="grid grid-cols-2 gap-3">
-              <Field>
-                <FieldLabel className="text-xs font-semibold">Mulai Tanggal *</FieldLabel>
-                <Input
-                  type="date"
-                  value={hStart}
-                  onChange={(e: any) => setHStart(e.target.value)}
-                  className="h-9 text-sm"
-                  required
-                />
+              <Field className="flex flex-col">
+                <FieldLabel className="text-xs font-semibold mb-1">Mulai Tanggal *</FieldLabel>
+                <Popover>
+                  <PopoverTrigger
+                    render={
+                      <Button variant="outline" className="h-9 w-full justify-start text-left font-normal text-xs px-3">
+                        <HugeiconsIcon icon={Calendar02Icon} className="mr-2 h-3.5 w-3.5 shrink-0 opacity-60" />
+                        {hStart ? format(new Date(hStart), "dd MMM yyyy") : <span>Pilih Tanggal</span>}
+                      </Button>
+                    }
+                  />
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={hStart ? new Date(hStart) : undefined}
+                      onSelect={(date) => setHStart(date ? toDateStr(date) : "")}
+                    />
+                  </PopoverContent>
+                </Popover>
               </Field>
-              <Field>
-                <FieldLabel className="text-xs font-semibold">Sampai Tanggal *</FieldLabel>
-                <Input
-                  type="date"
-                  value={hEnd}
-                  onChange={(e: any) => setHEnd(e.target.value)}
-                  className="h-9 text-sm"
-                  required
-                />
+              <Field className="flex flex-col">
+                <FieldLabel className="text-xs font-semibold mb-1">Sampai Tanggal *</FieldLabel>
+                <Popover>
+                  <PopoverTrigger
+                    render={
+                      <Button variant="outline" className="h-9 w-full justify-start text-left font-normal text-xs px-3">
+                        <HugeiconsIcon icon={Calendar02Icon} className="mr-2 h-3.5 w-3.5 shrink-0 opacity-60" />
+                        {hEnd ? format(new Date(hEnd), "dd MMM yyyy") : <span>Pilih Tanggal</span>}
+                      </Button>
+                    }
+                  />
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={hEnd ? new Date(hEnd) : undefined}
+                      onSelect={(date) => setHEnd(date ? toDateStr(date) : "")}
+                    />
+                  </PopoverContent>
+                </Popover>
               </Field>
             </div>
             <Button type="submit" className="w-full h-9 text-sm" disabled={hLoading}>
