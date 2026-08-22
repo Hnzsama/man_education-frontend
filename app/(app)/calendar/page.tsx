@@ -65,6 +65,7 @@ const toDateStr = (d: Date) =>
 export default function CalendarPage() {
   const router = useRouter()
   const [currentDate, setCurrentDate] = React.useState(new Date())
+  const [selectedDate, setSelectedDate] = React.useState<Date>(new Date())
   const [semesters, setSemesters] = React.useState<any[]>([])
   const [allCourses, setAllCourses] = React.useState<any[]>([])
   const [tasks, setTasks]   = React.useState<any[]>([])
@@ -412,7 +413,7 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      <div className="flex gap-5 items-start">
+      <div className="flex flex-col xl:flex-row gap-5 items-start w-full">
 
         {/* ── Calendar Grid ──────────────────────────────── */}
         <div className="flex-1 min-w-0 rounded-2xl border border-border/50 bg-card shadow-xs overflow-hidden">
@@ -430,6 +431,7 @@ export default function CalendarPage() {
               const items   = getItems(cell.date)
               const isToday = cell.date.toDateString() === new Date().toDateString()
               const ds      = toDateStr(cell.date)
+              const isSelected = selectedDate ? toDateStr(selectedDate) === ds : false
               const isDrop  = dropTargetDate === ds && draggingTaskId !== null
               const isWeekend = i % 7 >= 5
               const holiday = holidays.find((h: any) => h.date === ds)
@@ -437,9 +439,11 @@ export default function CalendarPage() {
               return (
                 <div
                   key={i}
-                  className={`min-h-[130px] flex flex-col p-1.5 gap-1 transition-all group relative
+                  onClick={() => cell.current && setSelectedDate(cell.date)}
+                  className={`min-h-[130px] flex flex-col p-1.5 gap-1 transition-all group relative cursor-pointer
                     ${!cell.current ? "bg-muted/10 opacity-40 pointer-events-none" : isWeekend ? "bg-muted/5 hover:bg-muted/10" : "bg-card hover:bg-muted/5"}
                     ${isToday ? "!bg-primary/5 ring-2 ring-inset ring-primary/40" : ""}
+                    ${isSelected ? "ring-2 ring-inset ring-primary z-10" : ""}
                     ${isDrop ? "!bg-primary/10 ring-2 ring-inset ring-primary/60 scale-[1.01]" : ""}
                   `}
                   onDragOver={(e) => cell.current && handleDragOver(e, ds)}
@@ -548,8 +552,104 @@ export default function CalendarPage() {
           </div>
         </div>
 
-        {/* ── Sidebar ──────────────────────────────────────── */}
-        <div className="hidden xl:flex flex-col gap-4 w-72 shrink-0">
+        {/* ── Sidebar (responsive) ─────────────────────────── */}
+        <div className="flex flex-col gap-4 w-full xl:w-72 shrink-0">
+          {/* Selected Date Agenda / Daily Overview */}
+          <div className="rounded-2xl border border-border/50 bg-card shadow-xs p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold flex items-center gap-1.5">
+                <HugeiconsIcon icon={Calendar02Icon} className="h-4 w-4 text-primary" />
+                Agenda: {selectedDate.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
+              </h3>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-6 w-6"
+                onClick={() => openAddSheet(selectedDate)}
+                title="Add task for this day"
+              >
+                <HugeiconsIcon icon={Add01Icon} className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+
+            {/* Holiday Notice */}
+            {(() => {
+              const ds = toDateStr(selectedDate);
+              const holiday = holidays.find((h: any) => h.date === ds);
+              if (holiday) {
+                return (
+                  <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-500 text-xs font-semibold flex items-start gap-1.5 animate-in fade-in duration-200">
+                    <span className="text-sm">🎈</span>
+                    <div>
+                      <p className="font-bold">Hari Libur</p>
+                      <p className="text-[11px] font-normal leading-normal">{holiday.description}</p>
+                    </div>
+                  </div>
+                );
+              }
+              return null;
+            })()}
+
+            {/* Items list */}
+            {(() => {
+              const items = getItems(selectedDate);
+              if (items.length === 0) {
+                return (
+                  <p className="text-xs text-muted-foreground text-center py-4">Tidak ada agenda hari ini 🎉</p>
+                );
+              }
+
+              return (
+                <div className="space-y-2 max-h-[250px] overflow-y-auto pr-1">
+                  {items.map((item) => {
+                    const isTask = item.type === "task";
+                    if (!isTask) {
+                      const c = COURSE_COLORS[courseColorMap[item.courseId] ?? 0];
+                      return (
+                        <div
+                          key={item.id}
+                          className={`flex items-center gap-2 rounded-xl p-2.5 text-xs font-semibold border ${c.bg} ${c.text} ${c.border}`}
+                        >
+                          <HugeiconsIcon icon={Clock01Icon} className="h-3.5 w-3.5 shrink-0 opacity-70" />
+                          <div className="flex-1 min-w-0">
+                            <p className="truncate font-bold">{item.title}</p>
+                            <p className="text-[10px] opacity-70">{item.time} WIB</p>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    const isDone = item.status === "DONE";
+                    const isHigh = item.priority === "HIGH";
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() => openEditSheet(item.raw)}
+                        className={`flex items-start justify-between gap-2 rounded-xl p-2.5 text-xs font-semibold border cursor-pointer transition-all
+                          ${isDone
+                            ? "bg-muted/40 text-muted-foreground line-through border-muted-foreground/15"
+                            : isHigh
+                            ? "bg-destructive/10 text-destructive border-destructive/20 hover:bg-destructive/15"
+                            : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-400/20 hover:bg-amber-500/15"
+                          }`}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="truncate font-bold">{item.title}</p>
+                          {item.raw.description && (
+                            <p className="text-[10px] opacity-70 truncate mt-0.5">{item.raw.description}</p>
+                          )}
+                        </div>
+                        <Badge variant={isHigh ? "destructive" : "outline"} className="text-[9px] font-bold uppercase shrink-0">
+                          {item.priority}
+                        </Badge>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+          </div>
+
           {/* Stats */}
           <div className="rounded-2xl border border-border/50 bg-card shadow-xs p-4 space-y-3">
             <div className="flex items-center justify-between">
