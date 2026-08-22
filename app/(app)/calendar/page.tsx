@@ -34,6 +34,8 @@ import {
   Add01Icon,
   Delete02Icon,
   PencilEdit01Icon,
+  Location01Icon,
+  Link01Icon,
 } from "@hugeicons/core-free-icons"
 import { toast } from "@/components/ui/toast"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
@@ -633,11 +635,11 @@ export default function CalendarPage() {
                   <div className="flex justify-between items-center pb-0.5">
                     {holiday ? (
                       <span className="text-[9px] font-semibold text-rose-500 max-w-[70%] truncate" title={holiday.description}>
-                        🎈 {holiday.description}
+                        [Libur] {holiday.description}
                       </span>
                     ) : customHoliday ? (
                       <span className="text-[9px] font-semibold text-amber-600 dark:text-amber-400 max-w-[70%] truncate" title={customHoliday.name}>
-                        🏫 {customHoliday.name}
+                        [Libur] {customHoliday.name}
                       </span>
                     ) : (
                       <button
@@ -769,7 +771,7 @@ export default function CalendarPage() {
               if (holiday) {
                 return (
                   <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-500 text-xs font-semibold flex items-start gap-1.5 animate-in fade-in duration-200">
-                    <span className="text-sm">🎈</span>
+                    <HugeiconsIcon icon={Calendar02Icon} className="h-4 w-4 shrink-0 mt-0.5" />
                     <div>
                       <p className="font-bold">Hari Libur</p>
                       <p className="text-[11px] font-normal leading-normal">{holiday.description}</p>
@@ -781,7 +783,7 @@ export default function CalendarPage() {
               if (customHoliday) {
                 return (
                   <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-semibold flex items-start gap-1.5 animate-in fade-in duration-200">
-                    <span className="text-sm">🏫</span>
+                    <HugeiconsIcon icon={Location01Icon} className="h-4 w-4 shrink-0 mt-0.5" />
                     <div>
                       <p className="font-bold">Libur Kampus</p>
                       <p className="text-[11px] font-normal leading-normal">{customHoliday.name}</p>
@@ -833,26 +835,34 @@ export default function CalendarPage() {
                             <HugeiconsIcon icon={Clock01Icon} className="h-3.5 w-3.5 shrink-0 opacity-70" />
                             <div className="flex-1 min-w-0">
                               <p className={`truncate font-bold ${item.isCancelled ? 'line-through opacity-60' : ''}`}>
-                                {item.exception?.type === 'CANCELLED' && '❌ [Batal] '}
-                                {item.exception?.type === 'MOVED' && '🔄 [Pindah] '}
+                                {item.exception?.type === 'CANCELLED' && '[Batal] '}
+                                {item.exception?.type === 'MOVED' && '[Pindah] '}
                                 {item.title}
                               </p>
-                              <p className="text-[10px] opacity-70">
-                                {item.time} WIB 
-                                {item.isCancelled && " (Batal)"} 
-                                {item.isHoliday && !item.isCancelled && " (Libur)"}
-                                {item.room && ` · 🏫 ${item.room}`}
+                              <p className="text-[10px] opacity-70 flex items-center gap-1 flex-wrap">
+                                <span>{item.time} WIB</span>
+                                {item.isCancelled && <span>(Batal)</span>} 
+                                {item.isHoliday && !item.isCancelled && <span>(Libur)</span>}
+                                {item.room && (
+                                  <span className="flex items-center gap-0.5">
+                                    <span>·</span>
+                                    <HugeiconsIcon icon={Location01Icon} className="h-3 w-3 shrink-0 opacity-70" />
+                                    <span>{item.room}</span>
+                                  </span>
+                                )}
                               </p>
                             </div>
                           </div>
                           {item.exception?.note && (
-                            <p className="text-[9.5px] text-rose-500 font-normal mt-0.5 border-t border-dashed border-rose-500/20 pt-1">
-                              📝 Catatan: {item.exception.note}
+                            <p className="text-[9.5px] text-rose-500 font-normal mt-0.5 border-t border-dashed border-rose-500/20 pt-1 flex items-center gap-1">
+                              <HugeiconsIcon icon={File01Icon} className="h-3 w-3 shrink-0" />
+                              <span>Catatan: {item.exception.note}</span>
                             </p>
                           )}
                           {item.link && (
-                            <a href={item.link} target="_blank" rel="noopener noreferrer" className="text-[9.5px] text-blue-500 hover:underline mt-0.5 block font-normal">
-                              🔗 Link Kelas
+                            <a href={item.link} target="_blank" rel="noopener noreferrer" className="text-[9.5px] text-blue-500 hover:underline mt-0.5 flex items-center gap-1 font-normal">
+                              <HugeiconsIcon icon={Link01Icon} className="h-3 w-3 shrink-0" />
+                              <span>Link Kelas</span>
                             </a>
                           )}
                         </div>
