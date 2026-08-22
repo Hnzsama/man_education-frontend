@@ -320,12 +320,20 @@ export default function CalendarPage() {
     setSheetOpen(true)
   }
 
+  const toLocalDateTimeString = (dateStr: string) => {
+    if (!dateStr) return ""
+    const localDate = new Date(dateStr)
+    const offset = localDate.getTimezoneOffset()
+    const adjustedDate = new Date(localDate.getTime() - (offset * 60 * 1000))
+    return adjustedDate.toISOString().slice(0, 16)
+  }
+
   const openEditSheet = (task: any) => {
     setEditingTask(task)
     setFTitle(task.title)
     setFDesc(task.description || "")
     setFCourseId(task.courseId || "none")
-    setFDeadline(new Date(task.deadline).toISOString().slice(0,16))
+    setFDeadline(toLocalDateTimeString(task.deadline))
     setFStatus(task.status)
     setFPriority(task.priority)
     setFIsGroupTask(task.isGroupTask || false)

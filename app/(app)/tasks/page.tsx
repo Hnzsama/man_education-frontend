@@ -229,12 +229,20 @@ export default function TasksPage() {
     setSheetOpen(true)
   }
 
+  const toLocalDateTimeString = (dateStr: string) => {
+    if (!dateStr) return ""
+    const localDate = new Date(dateStr)
+    const offset = localDate.getTimezoneOffset()
+    const adjustedDate = new Date(localDate.getTime() - (offset * 60 * 1000))
+    return adjustedDate.toISOString().slice(0, 16)
+  }
+
   const handleEditClick = (task: any) => {
     setEditingTaskId(task.id)
     setTitle(task.title)
     setDescription(task.description || "")
     setCourseId(task.courseId || "none")
-    setDeadline(new Date(task.deadline).toISOString().slice(0, 16)) // Format to YYYY-MM-DDTHH:MM for datetime-local
+    setDeadline(toLocalDateTimeString(task.deadline))
     setStatus(task.status)
     setPriority(task.priority)
     setIsGroupTask(task.isGroupTask || false)
