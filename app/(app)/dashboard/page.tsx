@@ -424,6 +424,7 @@ export default function DashboardPage() {
               taskReminderOffsets: currentUser.taskReminderOffsets || [1440, 720],
               notificationChannel: currentUser.notificationChannel || "EMAIL",
               whatsappNumber: currentUser.whatsappNumber || "",
+              whatsappJid: currentUser.whatsappJid || "",
               userRole: currentUser.role
             }}
             onSaveSuccess={async () => {

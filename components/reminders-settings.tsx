@@ -54,6 +54,7 @@ interface RemindersSettingsProps {
     taskReminderOffsets: number[];
     notificationChannel: "EMAIL" | "WHATSAPP" | "NONE";
     whatsappNumber: string;
+    whatsappJid: string;
     userRole: "CLASS" | "INDIVIDUAL";
   };
   onSaveSuccess?: () => void;
@@ -67,6 +68,7 @@ export function RemindersSettings({ initialData, onSaveSuccess }: RemindersSetti
   const [taskReminderOffsets, setTaskReminderOffsets] = React.useState<number[]>(initialData?.taskReminderOffsets ?? [1440, 720]);
   const [notificationChannel, setNotificationChannel] = React.useState<"EMAIL" | "WHATSAPP" | "NONE">(initialData?.notificationChannel ?? "EMAIL");
   const [whatsappNumber, setWhatsappNumber] = React.useState(initialData?.whatsappNumber ?? "");
+  const [whatsappJid, setWhatsappJid] = React.useState(initialData?.whatsappJid ?? "");
   const userRole = initialData?.userRole ?? "CLASS";
   
   const [newScheduleOffset, setNewScheduleOffset] = React.useState("");
@@ -86,6 +88,7 @@ export function RemindersSettings({ initialData, onSaveSuccess }: RemindersSetti
       setTaskReminderOffsets(initialData.taskReminderOffsets);
       setNotificationChannel(initialData.notificationChannel ?? "EMAIL");
       setWhatsappNumber(initialData.whatsappNumber ?? "");
+      setWhatsappJid(initialData.whatsappJid ?? "");
     }
   }, [initialData]);
 
@@ -115,6 +118,7 @@ export function RemindersSettings({ initialData, onSaveSuccess }: RemindersSetti
           taskReminderOffsets,
           notificationChannel,
           whatsappNumber: notificationChannel === "WHATSAPP" ? whatsappNumber : undefined,
+          whatsappJid: notificationChannel === "WHATSAPP" ? whatsappJid : undefined,
         }),
       });
 
@@ -256,40 +260,44 @@ export function RemindersSettings({ initialData, onSaveSuccess }: RemindersSetti
               })}
             </div>
 
-            {/* WhatsApp Phone Number Input */}
+            {/* WhatsApp Number & JID Input */}
             {notificationChannel === "WHATSAPP" && userRole === "INDIVIDUAL" && (
               <div className="space-y-3 pt-2 animate-in fade-in slide-in-from-top-1 duration-200">
-                {!whatsappNumber ? (
+                {!whatsappNumber && !whatsappJid && (
                   <div className="p-3.5 border border-yellow-500/30 bg-yellow-500/10 rounded-xl space-y-2">
                     <p className="text-xs text-yellow-600 dark:text-yellow-400 font-medium leading-relaxed">
-                      ⚠️ Anda belum mengatur nomor WhatsApp. Silakan atur nomor WhatsApp Anda di halaman Profil terlebih dahulu untuk mengaktifkan notifikasi.
-                    </p>
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={() => router.push("/profile")}
-                      className="h-8 text-xs font-semibold bg-yellow-600 text-white hover:bg-yellow-700"
-                    >
-                      Buka Pengaturan Profil
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-1.5">
-                    <Label htmlFor="wa-number" className="text-xs font-semibold">Nomor WhatsApp Pribadi</Label>
-                    <Input
-                      id="wa-number"
-                      type="text"
-                      placeholder="Contoh: 628123456789"
-                      value={whatsappNumber}
-                      onChange={(e) => setWhatsappNumber(e.target.value)}
-                      className="h-9"
-                      required
-                    />
-                    <p className="text-[11px] text-muted-foreground leading-normal">
-                      Masukkan nomor telepon lengkap diawali kode negara (misal 62 untuk Indonesia) tanpa spasi atau tanda +. Bot akan mengirim pesan langsung ke nomor ini.
+                      Anda belum mengatur nomor WhatsApp. Isi salah satu kolom di bawah untuk mengaktifkan notifikasi.
                     </p>
                   </div>
                 )}
+                <div className="space-y-1.5">
+                  <Label htmlFor="wa-number" className="text-xs font-semibold">Nomor WhatsApp</Label>
+                  <Input
+                    id="wa-number"
+                    type="text"
+                    placeholder="Contoh: 628123456789"
+                    value={whatsappNumber}
+                    onChange={(e) => setWhatsappNumber(e.target.value)}
+                    className="h-9"
+                  />
+                  <p className="text-[11px] text-muted-foreground leading-normal">
+                    Nomor lengkap diawali kode negara (62 untuk Indonesia), tanpa + atau spasi.
+                  </p>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="wa-jid" className="text-xs font-semibold">WhatsApp JID / LID</Label>
+                  <Input
+                    id="wa-jid"
+                    type="text"
+                    placeholder="Contoh: 628123456789@s.whatsapp.net atau xxx@lid"
+                    value={whatsappJid}
+                    onChange={(e) => setWhatsappJid(e.target.value)}
+                    className="h-9"
+                  />
+                  <p className="text-[11px] text-muted-foreground leading-normal">
+                    Khusus pengguna WA Desktop / Web. Kirim pesan <strong>"id saya"</strong> ke bot untuk mengetahui JID kamu.
+                  </p>
+                </div>
               </div>
             )}
             
