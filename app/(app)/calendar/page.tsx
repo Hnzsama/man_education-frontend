@@ -37,6 +37,7 @@ import {
   PencilEdit01Icon,
   Location01Icon,
   Link01Icon,
+  Cancel01Icon,
 } from "@hugeicons/core-free-icons"
 import { toast } from "@/components/ui/toast"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
@@ -920,7 +921,7 @@ export default function CalendarPage() {
               const items = getItems(selectedDate);
               if (items.length === 0) {
                 return (
-                  <p className="text-xs text-muted-foreground text-center py-4">Tidak ada agenda hari ini 🎉</p>
+                  <p className="text-xs text-muted-foreground text-center py-4">Tidak ada agenda hari ini</p>
                 );
               }
 
@@ -934,19 +935,16 @@ export default function CalendarPage() {
                         <div
                           key={item.id}
                           onClick={() => {
-                            if (userProfile?.role === 'CLASS') {
-                              setSelectedSchedule(item)
-                              setExcType(item.exception?.type ?? "CANCELLED")
-                              setExcNewStartTime(item.exception?.newStartTime ?? item.time)
-                              setExcNewEndTime(item.exception?.newEndTime ?? item.endTime ?? "")
-                              setExcNewRoom(item.exception?.newRoom ?? item.room ?? "")
-                              setExcNewLink(item.exception?.newLink ?? item.link ?? "")
-                              setExcNote(item.exception?.note ?? "")
-                              setExceptionSheetOpen(true)
-                            }
+                            setSelectedSchedule(item)
+                            setExcType(item.exception?.type ?? "CANCELLED")
+                            setExcNewStartTime(item.exception?.newStartTime ?? item.time)
+                            setExcNewEndTime(item.exception?.newEndTime ?? item.endTime ?? "")
+                            setExcNewRoom(item.exception?.newRoom ?? item.room ?? "")
+                            setExcNewLink(item.exception?.newLink ?? item.link ?? "")
+                            setExcNote(item.exception?.note ?? "")
+                            setExceptionSheetOpen(true)
                           }}
-                          className={`flex flex-col gap-1 rounded-xl p-2.5 text-xs font-semibold border transition-all
-                            ${userProfile?.role === 'CLASS' ? 'cursor-pointer hover:ring-[1.5px] hover:ring-primary/40' : ''}
+                          className={`flex flex-col gap-1 rounded-xl p-2.5 text-xs font-semibold border transition-all cursor-pointer hover:ring-[1.5px] hover:ring-primary/40
                             ${item.isHoliday 
                               ? "bg-muted text-muted-foreground/50 border-muted-foreground/10 opacity-50" 
                               : `${c.bg} ${c.text} ${c.border}`
@@ -1087,7 +1085,7 @@ export default function CalendarPage() {
           <div className="rounded-2xl border border-border/50 bg-card shadow-xs p-4 space-y-3">
             <h3 className="text-sm font-bold">Upcoming Deadlines</h3>
             {upcomingTasks.length === 0 ? (
-              <p className="text-xs text-muted-foreground text-center py-4">No upcoming tasks 🎉</p>
+              <p className="text-xs text-muted-foreground text-center py-4">Tidak ada tugas mendatang</p>
             ) : (
               <div className="space-y-2">
                 {upcomingTasks.map((t) => {
@@ -1488,15 +1486,47 @@ export default function CalendarPage() {
                 <FieldLabel className="text-xs font-semibold">Status Perubahan Jadwal *</FieldLabel>
                 <Select value={excType} onValueChange={(v: any) => setExcType(v)}>
                   <SelectTrigger className="w-full h-9">
-                    <span data-slot="select-value" className="text-sm">
-                      {excType === "CANCELLED" ? "❌ Dibatalkan (Libur)" : excType === "MOVED" ? "🔄 Dipindahkan" : "📝 Catatan Info"}
+                    <span data-slot="select-value" className="text-sm flex items-center gap-1.5">
+                      {excType === "CANCELLED" && (
+                        <span className="flex items-center gap-1.5 text-rose-500">
+                          <HugeiconsIcon icon={Cancel01Icon} className="h-4 w-4" />
+                          <span>Dibatalkan (Libur)</span>
+                        </span>
+                      )}
+                      {excType === "MOVED" && (
+                        <span className="flex items-center gap-1.5 text-blue-500">
+                          <HugeiconsIcon icon={ArrowRight01Icon} className="h-4 w-4" />
+                          <span>Dipindahkan</span>
+                        </span>
+                      )}
+                      {excType === "NOTE" && (
+                        <span className="flex items-center gap-1.5 text-amber-500">
+                          <HugeiconsIcon icon={File01Icon} className="h-4 w-4" />
+                          <span>Catatan Info</span>
+                        </span>
+                      )}
                     </span>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectGroup>
-                      <SelectItem value="CANCELLED">❌ Dibatalkan (Libur)</SelectItem>
-                      <SelectItem value="MOVED">🔄 Dipindahkan</SelectItem>
-                      <SelectItem value="NOTE">📝 Catatan Info</SelectItem>
+                      <SelectItem value="CANCELLED">
+                        <span className="flex items-center gap-1.5 text-rose-500">
+                          <HugeiconsIcon icon={Cancel01Icon} className="h-4 w-4" />
+                          <span>Dibatalkan (Libur)</span>
+                        </span>
+                      </SelectItem>
+                      <SelectItem value="MOVED">
+                        <span className="flex items-center gap-1.5 text-blue-500">
+                          <HugeiconsIcon icon={ArrowRight01Icon} className="h-4 w-4" />
+                          <span>Dipindahkan</span>
+                        </span>
+                      </SelectItem>
+                      <SelectItem value="NOTE">
+                        <span className="flex items-center gap-1.5 text-amber-500">
+                          <HugeiconsIcon icon={File01Icon} className="h-4 w-4" />
+                          <span>Catatan Info</span>
+                        </span>
+                      </SelectItem>
                     </SelectGroup>
                   </SelectContent>
                 </Select>
