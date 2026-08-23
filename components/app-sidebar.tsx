@@ -201,7 +201,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               className="data-[slot=sidebar-menu-button]:p-1.5!"
               render={<a href="#" />}
             >
-              <HugeiconsIcon icon={CommandIcon} strokeWidth={2} className="size-5!" />
+              <img src="/logo.svg" alt="Logo" className="size-5 object-contain" />
               <span className="text-base font-semibold">Man Education</span>
             </SidebarMenuButton>
           </SidebarMenuItem>

@@ -83,6 +83,11 @@ export default function TasksPage() {
   const [submissionLink, setSubmissionLink] = React.useState("")
   const [formLoading, setFormLoading] = React.useState(false)
 
+  // Attachment states
+  const [selectedFiles, setSelectedFiles] = React.useState<FileList | null>(null)
+  const [existingAttachments, setExistingAttachments] = React.useState<any[]>([])
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null)
+
   // Sheet State
   const [sheetOpen, setSheetOpen] = React.useState(false)
   const [editingTaskId, setEditingTaskId] = React.useState<string | null>(null)
@@ -188,6 +193,30 @@ export default function TasksPage() {
         throw new Error(data.message || "Failed to save task")
       }
 
+      const savedTask = await res.json()
+      const taskId = editingTaskId || savedTask.id
+
+      // Upload files if selected
+      if (selectedFiles && selectedFiles.length > 0 && taskId) {
+        const formData = new FormData()
+        for (let i = 0; i < selectedFiles.length; i++) {
+          formData.append("files", selectedFiles[i])
+        }
+
+        const uploadRes = await fetch(`${API_URL}/api/tasks/${taskId}/attachments`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        })
+
+        if (!uploadRes.ok) {
+          const uploadErr = await uploadRes.json()
+          throw new Error(uploadErr.message || "Failed to upload attachments")
+        }
+      }
+
       setTitle("")
       setDescription("")
       setCourseId("none")
@@ -199,6 +228,8 @@ export default function TasksPage() {
       setWeightPercentage("")
       setSubmissionMethod("OFFLINE")
       setSubmissionLink("")
+      setSelectedFiles(null)
+      if (fileInputRef.current) fileInputRef.current.value = ""
       setEditingTaskId(null)
       setSheetOpen(false)
       toast.add({ 
@@ -226,6 +257,9 @@ export default function TasksPage() {
     setWeightPercentage("")
     setSubmissionMethod("OFFLINE")
     setSubmissionLink("")
+    setExistingAttachments([])
+    setSelectedFiles(null)
+    if (fileInputRef.current) fileInputRef.current.value = ""
     setSheetOpen(true)
   }
 
@@ -250,6 +284,9 @@ export default function TasksPage() {
     setWeightPercentage(task.weightPercentage?.toString() || "")
     setSubmissionMethod(task.submissionMethod || "OFFLINE")
     setSubmissionLink(task.submissionLink || "")
+    setExistingAttachments(task.attachments || [])
+    setSelectedFiles(null)
+    if (fileInputRef.current) fileInputRef.current.value = ""
     setSheetOpen(true)
   }
 
@@ -274,6 +311,32 @@ export default function TasksPage() {
       fetchData()
     } catch (err: any) {
       toast.add({ type: "error", description: err.message || "Failed to update task" })
+    }
+  }
+
+  const handleDeleteAttachment = async (attachmentId: string) => {
+    if (!editingTaskId) return
+    const token = getCookie("token")
+    if (!token) return
+
+    try {
+      const res = await fetch(`${API_URL}/api/tasks/${editingTaskId}/attachments/${attachmentId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.message || "Failed to delete attachment")
+      }
+
+      setExistingAttachments((prev) => prev.filter((a) => a.id !== attachmentId))
+      toast.add({ type: "success", description: "Attachment deleted" })
+      fetchData()
+    } catch (err: any) {
+      toast.add({ type: "error", description: err.message || "Failed to delete attachment" })
     }
   }
 
@@ -616,10 +679,65 @@ export default function TasksPage() {
                           >
                             Buka Link →
                           </a>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
+                         )}
+                       </div>
+
+                       {/* Attachments Display */}
+                       {task.attachments && task.attachments.length > 0 && (
+                         <div className="pt-2.5 border-t border-border/30 space-y-1.5">
+                           <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
+                             Attachments ({task.attachments.length})
+                           </span>
+                           <div className="flex flex-wrap gap-2">
+                             {task.attachments.map((att: any) => {
+                               const isImage = att.fileType.startsWith("image/")
+                               const fileUrl = `${API_URL}/uploads/tasks/${att.filePath}`
+
+                               return (
+                                 <div
+                                   key={att.id}
+                                   className="group relative flex items-center gap-2 rounded-lg border border-border/50 bg-background/50 p-1.5 pr-2.5 text-xs hover:bg-muted/40 transition-colors max-w-full"
+                                 >
+                                   {isImage ? (
+                                     <a
+                                       href={fileUrl}
+                                       target="_blank"
+                                       rel="noopener noreferrer"
+                                       className="h-8 w-8 rounded overflow-hidden border border-border/70 flex-shrink-0 cursor-zoom-in"
+                                     >
+                                       <img
+                                         src={fileUrl}
+                                         alt={att.name}
+                                         className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-200"
+                                       />
+                                     </a>
+                                   ) : (
+                                     <div className="h-8 w-8 rounded border border-border/70 bg-muted/65 flex items-center justify-center text-primary flex-shrink-0 font-sans">
+                                       <HugeiconsIcon icon={File01Icon} className="h-4 w-4" />
+                                     </div>
+                                   )}
+                                   <div className="flex flex-col min-w-0 pr-1">
+                                     <a
+                                       href={fileUrl}
+                                       target="_blank"
+                                       rel="noopener noreferrer"
+                                       className="font-medium text-[11px] text-foreground hover:text-primary transition-colors truncate max-w-[120px] block"
+                                       title={att.name}
+                                     >
+                                       {att.name}
+                                     </a>
+                                     <span className="text-[9px] text-muted-foreground">
+                                       {(att.fileSize / 1024).toFixed(1)} KB
+                                     </span>
+                                   </div>
+                                 </div>
+                               )
+                             })}
+                           </div>
+                         </div>
+                       )}
+                     </div>
+                   </CardContent>
                   <CardFooter className="pt-3 border-t border-border/40 flex justify-between items-center gap-2 bg-muted/10">
                     {!isDone ? (
                       <Button
@@ -836,6 +954,86 @@ export default function TasksPage() {
                   className="h-9 text-sm"
                 />
               </Field>
+
+              {/* Existing Attachments list (Only visible in Edit Mode) */}
+              {editingTaskId && existingAttachments.length > 0 && (
+                <div className="space-y-2 pt-2 border-t border-border/30">
+                  <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">
+                    Lampiran Saat Ini
+                  </span>
+                  <div className="grid gap-2">
+                    {existingAttachments.map((att: any) => {
+                      const isImage = att.fileType.startsWith("image/")
+                      const fileUrl = `${API_URL}/uploads/tasks/${att.filePath}`
+
+                      return (
+                        <div
+                          key={att.id}
+                          className="flex items-center justify-between p-2 rounded-lg border bg-muted/20 text-xs gap-3"
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            {isImage ? (
+                              <img
+                                src={fileUrl}
+                                alt={att.name}
+                                className="h-8 w-8 rounded object-cover border border-border/80"
+                              />
+                            ) : (
+                              <div className="h-8 w-8 rounded border bg-background flex items-center justify-center text-muted-foreground shrink-0">
+                                <HugeiconsIcon icon={File01Icon} className="h-4 w-4" />
+                              </div>
+                            )}
+                            <div className="flex flex-col min-w-0">
+                              <span className="font-semibold truncate text-[11px]" title={att.name}>
+                                {att.name}
+                              </span>
+                              <span className="text-[9px] text-muted-foreground">
+                                {(att.fileSize / 1024).toFixed(1)} KB
+                              </span>
+                            </div>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive shrink-0"
+                            onClick={() => handleDeleteAttachment(att.id)}
+                          >
+                            <HugeiconsIcon icon={Delete02Icon} className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Upload Files Input */}
+              <Field>
+                <FieldLabel className="text-xs font-semibold">Tambahkan Lampiran (File/Gambar)</FieldLabel>
+                <div className="flex flex-col gap-2">
+                  <Input
+                    id="task-files"
+                    type="file"
+                    multiple
+                    ref={fileInputRef}
+                    onChange={(e) => setSelectedFiles(e.target.files)}
+                    className="h-10 text-xs py-1.5 file:mr-2 file:py-0.5 file:px-2 file:rounded-md file:border-0 file:text-[11px] file:font-semibold file:bg-primary file:text-primary-foreground hover:file:opacity-90"
+                    accept="image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/zip,text/plain"
+                  />
+                  {selectedFiles && selectedFiles.length > 0 && (
+                    <div className="text-[11px] text-muted-foreground mt-1 space-y-0.5 border-l-2 border-primary/50 pl-2">
+                      <span className="font-bold">File terpilih:</span>
+                      {Array.from(selectedFiles).map((file, idx) => (
+                        <div key={idx} className="truncate">
+                          • {file.name} ({(file.size / 1024).toFixed(1)} KB)
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </Field>
+
               <div className="flex gap-3 pt-4">
                 <Button type="button" variant="outline" className="w-1/2" onClick={() => setSheetOpen(false)}>
                   Cancel
