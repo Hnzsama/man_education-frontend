@@ -84,7 +84,7 @@ export default function TasksPage() {
   const [formLoading, setFormLoading] = React.useState(false)
 
   // Attachment states
-  const [selectedFiles, setSelectedFiles] = React.useState<FileList | null>(null)
+  const [selectedFiles, setSelectedFiles] = React.useState<File[]>([])
   const [existingAttachments, setExistingAttachments] = React.useState<any[]>([])
   const fileInputRef = React.useRef<HTMLInputElement | null>(null)
 
@@ -197,11 +197,11 @@ export default function TasksPage() {
       const taskId = editingTaskId || savedTask.id
 
       // Upload files if selected
-      if (selectedFiles && selectedFiles.length > 0 && taskId) {
+      if (selectedFiles.length > 0 && taskId) {
         const formData = new FormData()
-        for (let i = 0; i < selectedFiles.length; i++) {
-          formData.append("files", selectedFiles[i])
-        }
+        selectedFiles.forEach((file) => {
+          formData.append("files", file)
+        })
 
         const uploadRes = await fetch(`${API_URL}/api/tasks/${taskId}/attachments`, {
           method: "POST",
@@ -228,7 +228,7 @@ export default function TasksPage() {
       setWeightPercentage("")
       setSubmissionMethod("OFFLINE")
       setSubmissionLink("")
-      setSelectedFiles(null)
+      setSelectedFiles([])
       if (fileInputRef.current) fileInputRef.current.value = ""
       setEditingTaskId(null)
       setSheetOpen(false)
@@ -258,7 +258,7 @@ export default function TasksPage() {
     setSubmissionMethod("OFFLINE")
     setSubmissionLink("")
     setExistingAttachments([])
-    setSelectedFiles(null)
+    setSelectedFiles([])
     if (fileInputRef.current) fileInputRef.current.value = ""
     setSheetOpen(true)
   }
@@ -285,7 +285,7 @@ export default function TasksPage() {
     setSubmissionMethod(task.submissionMethod || "OFFLINE")
     setSubmissionLink(task.submissionLink || "")
     setExistingAttachments(task.attachments || [])
-    setSelectedFiles(null)
+    setSelectedFiles([])
     if (fileInputRef.current) fileInputRef.current.value = ""
     setSheetOpen(true)
   }
@@ -1017,16 +1017,33 @@ export default function TasksPage() {
                     type="file"
                     multiple
                     ref={fileInputRef}
-                    onChange={(e) => setSelectedFiles(e.target.files)}
+                    onChange={(e) => {
+                      if (e.target.files) {
+                        const newFiles = Array.from(e.target.files)
+                        setSelectedFiles((prev) => {
+                          const filtered = newFiles.filter(
+                            (nf) => !prev.some((pf) => pf.name === nf.name && pf.size === nf.size)
+                          )
+                          return [...prev, ...filtered]
+                        })
+                      }
+                    }}
                     className="h-10 text-xs py-1.5 file:mr-2 file:py-0.5 file:px-2 file:rounded-md file:border-0 file:text-[11px] file:font-semibold file:bg-primary file:text-primary-foreground hover:file:opacity-90"
                     accept="image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/zip,text/plain"
                   />
-                  {selectedFiles && selectedFiles.length > 0 && (
-                    <div className="text-[11px] text-muted-foreground mt-1 space-y-0.5 border-l-2 border-primary/50 pl-2">
-                      <span className="font-bold">File terpilih:</span>
-                      {Array.from(selectedFiles).map((file, idx) => (
-                        <div key={idx} className="truncate">
-                          • {file.name} ({(file.size / 1024).toFixed(1)} KB)
+                  {selectedFiles.length > 0 && (
+                    <div className="text-[11px] text-muted-foreground mt-2 space-y-1.5 border-l-2 border-primary/50 pl-2">
+                      <span className="font-bold block mb-1">File terpilih untuk diunggah:</span>
+                      {selectedFiles.map((file, idx) => (
+                        <div key={idx} className="flex items-center justify-between gap-2 bg-muted/10 p-1.5 rounded pr-2">
+                          <span className="truncate max-w-[200px] font-medium">• {file.name} ({(file.size / 1024).toFixed(1)} KB)</span>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedFiles((prev) => prev.filter((_, i) => i !== idx))}
+                            className="text-destructive hover:underline font-semibold text-[10px]"
+                          >
+                            Batal
+                          </button>
                         </div>
                       ))}
                     </div>
