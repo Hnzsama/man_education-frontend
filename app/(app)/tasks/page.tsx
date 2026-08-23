@@ -794,7 +794,7 @@ export default function TasksPage() {
                 : "Create a new task with custom course mapping, deadline, and priority."}
             </SheetDescription>
           </SheetHeader>
-          <div className="px-6 py-4">
+          <div className="px-6 py-4 overflow-y-auto flex-1">
             <form onSubmit={handleSubmit} className="space-y-4">
               <Field>
                 <FieldLabel htmlFor="task-title">Title</FieldLabel>
