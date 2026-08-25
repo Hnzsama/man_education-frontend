@@ -56,6 +56,9 @@ export default function DashboardPage() {
   const [loading, setLoading] = React.useState(true)
   const [backupLoading, setBackupLoading] = React.useState(false)
   const fileInputRef = React.useRef<HTMLInputElement>(null)
+  const [customHolidays, setCustomHolidays] = React.useState<any[]>([])
+  const [nationalHolidays, setNationalHolidays] = React.useState<any[]>([])
+  const [todayHolidayName, setTodayHolidayName] = React.useState<string | null>(null)
 
   const handleExportData = async () => {
     setBackupLoading(true)
@@ -147,6 +150,42 @@ export default function DashboardPage() {
           setCurrentUser(meData)
         }
 
+        // Fetch custom holidays
+        const customHolidaysRes = await fetch(`${API_URL}/api/custom-holidays`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        let cHolidays: any[] = []
+        if (customHolidaysRes.ok) {
+          cHolidays = await customHolidaysRes.json()
+          setCustomHolidays(cHolidays)
+        }
+
+        // Fetch national holidays
+        const currentYear = new Date().getFullYear()
+        const natHolidaysRes = await fetch(`${API_URL}/api/semesters/holidays?year=${currentYear}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        let nHolidays: any[] = []
+        if (natHolidaysRes.ok) {
+          const data = await natHolidaysRes.json()
+          if (Array.isArray(data)) nHolidays = data
+          else if (data && Array.isArray(data.data)) nHolidays = data.data
+          else if (data && Array.isArray(data.holidays)) nHolidays = data.holidays
+          setNationalHolidays(nHolidays)
+        }
+
+        const now = new Date()
+        const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
+
+        // Find custom holiday for today
+        const activeCustomHoliday = cHolidays.find((h: any) => todayStr >= h.startDate && todayStr <= h.endDate)
+        
+        // Find national holiday for today
+        const activeNationalHoliday = nHolidays.find((h: any) => h.holiday_date === todayStr)
+
+        const holidayName = activeCustomHoliday?.name || activeNationalHoliday?.holiday_name || null
+        setTodayHolidayName(holidayName)
+
         // 1. Fetch semesters to find active one
         const semRes = await fetch(`${API_URL}/api/semesters`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -168,8 +207,6 @@ export default function DashboardPage() {
             // Extract today's schedules
             const todayNum = getTodayDayOfWeek()
             const todayScheds: any[] = []
-            const now = new Date()
-            const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
 
             coursesData.forEach((course: any) => {
               if (course.schedules && Array.isArray(course.schedules)) {
@@ -207,7 +244,8 @@ export default function DashboardPage() {
                       courseCode: course.code,
                       isCancelled,
                       isMoved,
-                      note
+                      note,
+                      isHoliday: !!holidayName
                     })
                   }
                 })
@@ -404,6 +442,12 @@ export default function DashboardPage() {
               <CardDescription>Your classes scheduled for today.</CardDescription>
             </CardHeader>
             <CardContent className="pt-4 flex-1">
+              {todayHolidayName && (
+                <div className="mb-4 p-3 rounded-xl border border-rose-500/20 bg-rose-500/5 text-rose-700 dark:text-rose-400 text-xs font-semibold flex items-center gap-2 font-sans">
+                  <HugeiconsIcon icon={AlertCircleIcon} className="h-4 w-4 shrink-0 text-rose-500" />
+                  <span>Hari Libur: {todayHolidayName} (Kelas diliburkan)</span>
+                </div>
+              )}
               {todaySchedules.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground gap-3">
                   <div className="rounded-full bg-primary/10 p-3 text-primary">
@@ -418,7 +462,7 @@ export default function DashboardPage() {
                     <div 
                       key={s.id} 
                       className={`flex flex-col gap-1.5 p-3.5 rounded-xl border transition-all ${
-                        s.isCancelled 
+                        s.isCancelled || s.isHoliday
                           ? "border-destructive/20 bg-destructive/5 opacity-70" 
                           : s.isMoved
                             ? "border-amber-500/40 bg-amber-500/5"
@@ -428,7 +472,7 @@ export default function DashboardPage() {
                       <div className="flex items-center justify-between gap-4">
                         <div className="space-y-1">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className={`font-bold text-sm text-foreground block ${s.isCancelled ? "line-through text-muted-foreground" : ""}`}>
+                            <span className={`font-bold text-sm text-foreground block ${s.isCancelled || s.isHoliday ? "line-through text-muted-foreground" : ""}`}>
                               {s.courseName}
                             </span>
                             {s.isCancelled && (
@@ -436,7 +480,12 @@ export default function DashboardPage() {
                                 Cancelled
                               </Badge>
                             )}
-                            {s.isMoved && (
+                            {s.isHoliday && (
+                              <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 font-semibold bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30">
+                                Holiday
+                              </Badge>
+                            )}
+                            {s.isMoved && !s.isHoliday && (
                               <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30">
                                 Rescheduled
                               </Badge>
@@ -445,7 +494,7 @@ export default function DashboardPage() {
                           <span className="text-[10px] text-primary font-semibold font-mono block">{s.courseCode}</span>
                         </div>
                         <div className="text-right shrink-0">
-                          <div className={`flex items-center gap-1.5 justify-end text-xs font-semibold ${s.isCancelled ? "line-through text-muted-foreground" : "text-foreground"}`}>
+                          <div className={`flex items-center gap-1.5 justify-end text-xs font-semibold ${s.isCancelled || s.isHoliday ? "line-through text-muted-foreground" : "text-foreground"}`}>
                             <HugeiconsIcon icon={Clock01Icon} className="h-3.5 w-3.5 text-primary" />
                             <span>{s.startTime} - {s.endTime}</span>
                           </div>
