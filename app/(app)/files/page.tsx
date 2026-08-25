@@ -103,14 +103,33 @@ export default function FilesPage() {
     if (!token) { router.push("/login"); return }
     setLoading(true)
     try {
-      const [coursesRes, tasksRes, resourcesRes] = await Promise.all([
-        fetch(`${API_URL}/api/courses`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${API_URL}/api/tasks`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${API_URL}/api/resources`, { headers: { Authorization: `Bearer ${token}` } }),
-      ])
-      if (coursesRes.ok) setCourses(await coursesRes.json())
-      if (tasksRes.ok) setTasks(await tasksRes.json())
-      if (resourcesRes.ok) setResources(await resourcesRes.json())
+      // 1. Fetch semesters first
+      const semestersRes = await fetch(`${API_URL}/api/semesters`, { headers: { Authorization: `Bearer ${token}` } })
+      if (!semestersRes.ok) throw new Error("Failed to load semesters")
+      const semesters = await semestersRes.json()
+      const activeSem = semesters.find((s: any) => s.isActive) || semesters[0]
+      
+      if (activeSem) {
+        // 2. Fetch courses for active semester, tasks, and resources in parallel
+        const [coursesRes, tasksRes, resourcesRes] = await Promise.all([
+          fetch(`${API_URL}/api/semesters/${activeSem.id}/courses`, { headers: { Authorization: `Bearer ${token}` } }),
+          fetch(`${API_URL}/api/tasks`, { headers: { Authorization: `Bearer ${token}` } }),
+          fetch(`${API_URL}/api/resources`, { headers: { Authorization: `Bearer ${token}` } }),
+        ])
+        if (coursesRes.ok) setCourses(await coursesRes.json())
+        if (tasksRes.ok) setTasks(await tasksRes.json())
+        if (resourcesRes.ok) setResources(await resourcesRes.json())
+      } else {
+        // Fallback parallel fetch if no semester found
+        const [tasksRes, resourcesRes] = await Promise.all([
+          fetch(`${API_URL}/api/tasks`, { headers: { Authorization: `Bearer ${token}` } }),
+          fetch(`${API_URL}/api/resources`, { headers: { Authorization: `Bearer ${token}` } }),
+        ])
+        if (tasksRes.ok) setTasks(await tasksRes.json())
+        if (resourcesRes.ok) setResources(await resourcesRes.json())
+      }
+    } catch (err: any) {
+      toast.add({ type: "error", description: err.message || "Failed to load data" })
     } finally {
       setLoading(false)
     }
