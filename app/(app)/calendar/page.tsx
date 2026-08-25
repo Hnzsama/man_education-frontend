@@ -324,7 +324,7 @@ export default function CalendarPage() {
         const errData = await res.json()
         throw new Error(errData.message || "Failed to parse task")
       }
-      toast.add({ type: "success", description: "Tugas berhasil ditambahkan via AI!" })
+      toast.add({ type: "success", description: "Task successfully added via AI!" })
       setQuickAddTaskText("")
       fetchData()
     } catch (err: any) {
@@ -359,11 +359,11 @@ export default function CalendarPage() {
         }),
       })
       if (!res.ok) { const d = await res.json(); throw new Error(d.message) }
-      toast.add({ type: "success", description: "Perubahan jadwal disimpan!" })
+      toast.add({ type: "success", description: "Schedule changes saved!" })
       setExceptionSheetOpen(false)
       fetchData()
     } catch (err: any) {
-      toast.add({ type: "error", description: err.message || "Gagal menyimpan perubahan" })
+      toast.add({ type: "error", description: err.message || "Failed to save changes" })
     } finally { setExcLoading(false) }
   }
 
@@ -381,11 +381,11 @@ export default function CalendarPage() {
         headers: { Authorization: `Bearer ${token}` },
       })
       if (!res.ok) { const d = await res.json(); throw new Error(d.message) }
-      toast.add({ type: "success", description: "Perubahan jadwal dibatalkan (kembali ke asal)!" })
+      toast.add({ type: "success", description: "Schedule changes reverted!" })
       setExceptionSheetOpen(false)
       fetchData()
     } catch (err: any) {
-      toast.add({ type: "error", description: err.message || "Gagal menghapus perubahan" })
+      toast.add({ type: "error", description: err.message || "Failed to delete changes" })
     }
   }
 
@@ -530,7 +530,7 @@ export default function CalendarPage() {
             </div>
             <Button variant="outline" size="sm" className="h-8 px-3 gap-1.5 text-xs font-semibold" onClick={() => setHolidaySheetOpen(true)}>
               <HugeiconsIcon icon={Calendar02Icon} className="h-3.5 w-3.5" />
-              Atur Libur
+              Manage Holidays
             </Button>
             <Button size="sm" className="h-8 px-3 gap-1.5 text-xs font-semibold" onClick={() => openAddSheet()}>
               <HugeiconsIcon icon={Add01Icon} className="h-3.5 w-3.5" />
@@ -586,11 +586,11 @@ export default function CalendarPage() {
                   <div className="flex justify-between items-center pb-0.5">
                     {holiday ? (
                       <span className="text-[9px] font-semibold text-rose-500 max-w-[70%] truncate" title={holiday.description}>
-                        [Libur] {holiday.description}
+                        [Holiday] {holiday.description}
                       </span>
                     ) : customHoliday ? (
                       <span className="text-[9px] font-semibold text-amber-600 dark:text-amber-400 max-w-[70%] truncate" title={customHoliday.name}>
-                        [Libur] {customHoliday.name}
+                        [Holiday] {customHoliday.name}
                       </span>
                     ) : (
                       <button
@@ -755,9 +755,9 @@ export default function CalendarPage() {
       <Sheet open={exceptionSheetOpen} onOpenChange={setExceptionSheetOpen}>
         <SheetContent side="right" className="w-[400px] sm:w-[440px] overflow-y-auto font-sans flex flex-col">
           <SheetHeader className="pb-4 border-b border-border/40">
-            <SheetTitle className="text-base">Perubahan Jadwal Mendadak</SheetTitle>
+            <SheetTitle className="text-base">Ad-hoc Schedule Adjustments</SheetTitle>
             <SheetDescription className="text-xs">
-              Buat penyesuaian khusus (Batal/Pindah) untuk jadwal kuliah hari ini.
+              Make custom adjustments (Cancel/Reschedule) for today's class schedule.
             </SheetDescription>
           </SheetHeader>
 
@@ -765,39 +765,39 @@ export default function CalendarPage() {
             <form onSubmit={handleExceptionSubmit} className="flex flex-col gap-4 pt-4 px-6 pb-6 flex-1">
               <div className="p-3 rounded-xl border bg-primary/5 text-xs">
                 <p className="font-bold text-primary">{selectedSchedule.title}</p>
-                <p className="text-muted-foreground mt-0.5">Jadwal Asal: {selectedSchedule.rawSchedule.startTime} WIB @ {selectedSchedule.rawSchedule.room || "-"}</p>
+                <p className="text-muted-foreground mt-0.5">Original Schedule: {selectedSchedule.rawSchedule.startTime} WIB @ {selectedSchedule.rawSchedule.room || "-"}</p>
               </div>
 
               <Field>
-                <FieldLabel className="text-xs font-semibold">Tanggal Perubahan *</FieldLabel>
+                <FieldLabel className="text-xs font-semibold">Date of Change *</FieldLabel>
                 <DatePicker
                   value={excDate}
                   onChange={setExcDate}
-                  placeholder="Pilih tanggal perubahan"
+                  placeholder="Select date of change"
                 />
               </Field>
 
               <Field>
-                <FieldLabel className="text-xs font-semibold">Status Perubahan Jadwal *</FieldLabel>
+                <FieldLabel className="text-xs font-semibold">Schedule Change Status *</FieldLabel>
                 <Select value={excType} onValueChange={(v: any) => setExcType(v)}>
                   <SelectTrigger className="w-full h-9">
                     <span data-slot="select-value" className="text-sm flex items-center gap-1.5">
                       {excType === "CANCELLED" && (
                         <span className="flex items-center gap-1.5 text-rose-500">
                           <HugeiconsIcon icon={Cancel01Icon} className="h-4 w-4" />
-                          <span>Dibatalkan (Libur)</span>
+                          <span>Cancelled (Off)</span>
                         </span>
                       )}
                       {excType === "MOVED" && (
                         <span className="flex items-center gap-1.5 text-blue-500">
                           <HugeiconsIcon icon={ArrowRight01Icon} className="h-4 w-4" />
-                          <span>Dipindahkan</span>
+                          <span>Rescheduled</span>
                         </span>
                       )}
                       {excType === "NOTE" && (
                         <span className="flex items-center gap-1.5 text-amber-500">
                           <HugeiconsIcon icon={File01Icon} className="h-4 w-4" />
-                          <span>Catatan Info</span>
+                          <span>Info Note</span>
                         </span>
                       )}
                     </span>
@@ -807,19 +807,19 @@ export default function CalendarPage() {
                       <SelectItem value="CANCELLED">
                         <span className="flex items-center gap-1.5 text-rose-500">
                           <HugeiconsIcon icon={Cancel01Icon} className="h-4 w-4" />
-                          <span>Dibatalkan (Libur)</span>
+                          <span>Cancelled (Off)</span>
                         </span>
                       </SelectItem>
                       <SelectItem value="MOVED">
                         <span className="flex items-center gap-1.5 text-blue-500">
                           <HugeiconsIcon icon={ArrowRight01Icon} className="h-4 w-4" />
-                          <span>Dipindahkan</span>
+                          <span>Rescheduled</span>
                         </span>
                       </SelectItem>
                       <SelectItem value="NOTE">
                         <span className="flex items-center gap-1.5 text-amber-500">
                           <HugeiconsIcon icon={File01Icon} className="h-4 w-4" />
-                          <span>Catatan Info</span>
+                          <span>Info Note</span>
                         </span>
                       </SelectItem>
                     </SelectGroup>
@@ -831,7 +831,7 @@ export default function CalendarPage() {
                 <>
                   <div className="grid grid-cols-2 gap-3">
                     <Field>
-                      <FieldLabel className="text-xs font-semibold">Jam Mulai Baru *</FieldLabel>
+                      <FieldLabel className="text-xs font-semibold">New Start Time *</FieldLabel>
                       <Input
                         type="time"
                         value={excNewStartTime}
@@ -841,7 +841,7 @@ export default function CalendarPage() {
                       />
                     </Field>
                     <Field>
-                      <FieldLabel className="text-xs font-semibold">Jam Selesai Baru</FieldLabel>
+                      <FieldLabel className="text-xs font-semibold">New End Time</FieldLabel>
                       <Input
                         type="time"
                         value={excNewEndTime}
@@ -851,7 +851,7 @@ export default function CalendarPage() {
                     </Field>
                   </div>
                   <Field>
-                    <FieldLabel className="text-xs font-semibold">Ruangan Baru</FieldLabel>
+                    <FieldLabel className="text-xs font-semibold">New Room</FieldLabel>
                     <Input
                       value={excNewRoom}
                       onChange={(e: any) => setExcNewRoom(e.target.value)}
@@ -860,7 +860,7 @@ export default function CalendarPage() {
                     />
                   </Field>
                   <Field>
-                    <FieldLabel className="text-xs font-semibold">Link Kelas Baru (Online)</FieldLabel>
+                    <FieldLabel className="text-xs font-semibold">New Class Link (Online)</FieldLabel>
                     <Input
                       value={excNewLink}
                       onChange={(e: any) => setExcNewLink(e.target.value)}
@@ -872,18 +872,18 @@ export default function CalendarPage() {
               )}
 
               <Field>
-                <FieldLabel className="text-xs font-semibold">Catatan / Alasan Perubahan</FieldLabel>
+                <FieldLabel className="text-xs font-semibold">Notes / Reason for Change</FieldLabel>
                 <Input
                   value={excNote}
                   onChange={(e: any) => setExcNote(e.target.value)}
-                  placeholder="e.g. Dosen berhalangan hadir, kelas pengganti jam 10"
+                  placeholder="e.g. Lecturer unavailable, makeup class at 10"
                   className="h-9 text-sm"
                 />
               </Field>
 
               <div className="flex gap-2 mt-2 pt-4 border-t border-border/40">
                 <Button type="submit" className="flex-1 h-9 text-sm" disabled={excLoading}>
-                  {excLoading ? "Menyimpan…" : "Simpan Perubahan"}
+                  {excLoading ? "Saving…" : "Save Changes"}
                 </Button>
                 {selectedSchedule.exception && (
                   <Button
@@ -891,7 +891,7 @@ export default function CalendarPage() {
                     variant="destructive"
                     size="icon"
                     className="h-9 w-9 shrink-0 animate-in fade-in"
-                    title="Batalkan Perubahan Jadwal"
+                    title="Cancel Schedule Adjustments"
                     onClick={() => handleExceptionDelete(selectedSchedule.exception.id)}
                   >
                     <HugeiconsIcon icon={Delete02Icon} className="h-4 w-4" />

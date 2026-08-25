@@ -111,7 +111,7 @@ export function CourseSheet({
 
       toast.add({
         type: "success",
-        description: editingCourseId ? "Mata kuliah berhasil diperbarui" : "Mata kuliah berhasil ditambahkan",
+        description: editingCourseId ? "Course successfully updated" : "Course successfully added",
       })
       onSaveSuccess()
       onClose(false)
@@ -126,17 +126,17 @@ export function CourseSheet({
     <Sheet open={isOpen} onOpenChange={onClose}>
       <SheetContent className="sm:max-w-md">
         <SheetHeader>
-          <SheetTitle>{editingCourseId ? "Edit Mata Kuliah" : "Tambah Mata Kuliah"}</SheetTitle>
+          <SheetTitle>{editingCourseId ? "Edit Course" : "Add Course"}</SheetTitle>
           <SheetDescription>
             {editingCourseId
-              ? "Perbarui kode, nama mata kuliah, sks, dan dosen pengampu."
-              : "Tambahkan mata kuliah baru ke semester yang sedang aktif."}
+              ? "Update course code, name, credits, and lecturer."
+              : "Add a new course to the currently active semester."}
           </SheetDescription>
         </SheetHeader>
         <div className="px-6 py-4">
           <form onSubmit={handleSubmit} className="space-y-4">
             <Field>
-              <FieldLabel htmlFor="course-code">Kode MK</FieldLabel>
+              <FieldLabel htmlFor="course-code">Course Code</FieldLabel>
               <Input
                 id="course-code"
                 type="text"
@@ -147,18 +147,18 @@ export function CourseSheet({
               />
             </Field>
             <Field>
-              <FieldLabel htmlFor="course-name">Nama Mata Kuliah</FieldLabel>
+              <FieldLabel htmlFor="course-name">Course Name</FieldLabel>
               <Input
                 id="course-name"
                 type="text"
-                placeholder="e.g. Pemrograman Web"
+                placeholder="e.g. Web Programming"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
               />
             </Field>
             <Field>
-              <FieldLabel htmlFor="course-credits">SKS</FieldLabel>
+              <FieldLabel htmlFor="course-credits">Credits</FieldLabel>
               <Input
                 id="course-credits"
                 type="number"
@@ -170,7 +170,7 @@ export function CourseSheet({
               />
             </Field>
             <Field>
-              <FieldLabel htmlFor="course-lecturer">Dosen Pengampu (Opsional)</FieldLabel>
+              <FieldLabel htmlFor="course-lecturer">Lecturer (Optional)</FieldLabel>
               <Input
                 id="course-lecturer"
                 type="text"
@@ -182,10 +182,10 @@ export function CourseSheet({
 
             <div className="flex gap-3 pt-4">
               <Button type="button" variant="outline" className="w-1/2" onClick={() => onClose(false)}>
-                Batal
+                Cancel
               </Button>
               <Button type="submit" className="w-1/2" disabled={formLoading}>
-                {formLoading ? "Menyimpan..." : editingCourseId ? "Simpan" : "Tambah"}
+                {formLoading ? "Saving..." : editingCourseId ? "Save" : "Add"}
               </Button>
             </div>
           </form>

@@ -56,7 +56,7 @@ export function HolidaySheet({
   const handleHolidaySubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!hStart || !hEnd) {
-      toast.add({ type: "error", description: "Tanggal mulai dan berakhir wajib diisi" })
+      toast.add({ type: "error", description: "Start and end dates are required" })
       return
     }
     setHLoading(true)
@@ -74,8 +74,8 @@ export function HolidaySheet({
           endDate: hEnd
         })
       })
-      if (!res.ok) throw new Error("Gagal menyimpan hari libur")
-      toast.add({ type: "success", description: "Hari libur berhasil ditambahkan!" })
+      if (!res.ok) throw new Error("Failed to save holiday")
+      toast.add({ type: "success", description: "Holiday successfully added!" })
       setHName("")
       setHStart("")
       setHEnd("")
@@ -94,8 +94,8 @@ export function HolidaySheet({
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` }
       })
-      if (!res.ok) throw new Error("Gagal menghapus hari libur")
-      toast.add({ type: "success", description: "Hari libur berhasil dihapus" })
+      if (!res.ok) throw new Error("Failed to delete holiday")
+      toast.add({ type: "success", description: "Holiday successfully deleted" })
       onSaveSuccess()
     } catch (err: any) {
       toast.add({ type: "error", description: err.message })
@@ -106,33 +106,33 @@ export function HolidaySheet({
     <Sheet open={isOpen} onOpenChange={onClose}>
       <SheetContent side="right" className="w-[400px] sm:w-[440px] overflow-y-auto font-sans flex flex-col">
         <SheetHeader className="pb-4 border-b border-border/40">
-          <SheetTitle className="text-base">Atur Libur Kampus</SheetTitle>
+          <SheetTitle className="text-base">Manage College Holidays</SheetTitle>
           <SheetDescription className="text-xs">
-            Tambahkan libur kampus kustom berjangka waktu.
+            Add custom college holidays with a date range.
           </SheetDescription>
         </SheetHeader>
 
         {/* Form to add custom holiday */}
         <form onSubmit={handleHolidaySubmit} className="flex flex-col gap-4 pt-4 px-6 pb-4 border-b border-border/40">
           <Field>
-            <FieldLabel className="text-xs font-semibold">Nama Hari Libur *</FieldLabel>
+            <FieldLabel className="text-xs font-semibold">Holiday Name *</FieldLabel>
             <Input
               value={hName}
               onChange={(e) => setHName(e.target.value)}
-              placeholder="e.g. Libur Semester, Libur Lebaran"
+              placeholder="e.g. Semester Break, Eid Break"
               className="h-9 text-sm"
               required
             />
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field className="flex flex-col">
-              <FieldLabel className="text-xs font-semibold mb-1">Mulai Tanggal *</FieldLabel>
+              <FieldLabel className="text-xs font-semibold mb-1">Start Date *</FieldLabel>
               <Popover>
                 <PopoverTrigger
                   render={
                     <Button variant="outline" className="h-9 w-full justify-start text-left font-normal text-xs px-3">
                       <HugeiconsIcon icon={Calendar02Icon} className="mr-2 h-3.5 w-3.5 shrink-0 opacity-60" />
-                      {hStart ? format(new Date(hStart), "dd MMM yyyy") : <span>Pilih Tanggal</span>}
+                      {hStart ? format(new Date(hStart), "dd MMM yyyy") : <span>Select Date</span>}
                     </Button>
                   }
                 />
@@ -146,13 +146,13 @@ export function HolidaySheet({
               </Popover>
             </Field>
             <Field className="flex flex-col">
-              <FieldLabel className="text-xs font-semibold mb-1">Sampai Tanggal *</FieldLabel>
+              <FieldLabel className="text-xs font-semibold mb-1">End Date *</FieldLabel>
               <Popover>
                 <PopoverTrigger
                   render={
                     <Button variant="outline" className="h-9 w-full justify-start text-left font-normal text-xs px-3">
                       <HugeiconsIcon icon={Calendar02Icon} className="mr-2 h-3.5 w-3.5 shrink-0 opacity-60" />
-                      {hEnd ? format(new Date(hEnd), "dd MMM yyyy") : <span>Pilih Tanggal</span>}
+                      {hEnd ? format(new Date(hEnd), "dd MMM yyyy") : <span>Select Date</span>}
                     </Button>
                   }
                 />
@@ -167,15 +167,15 @@ export function HolidaySheet({
             </Field>
           </div>
           <Button type="submit" className="w-full h-9 text-sm" disabled={hLoading}>
-            {hLoading ? "Menyimpan…" : "Tambah Hari Libur"}
+            {hLoading ? "Saving…" : "Add Holiday"}
           </Button>
         </form>
 
         {/* List of custom holidays */}
         <div className="flex-1 p-6 flex flex-col gap-3">
-          <h4 className="text-xs font-bold text-foreground/70 uppercase tracking-wider">Daftar Libur Anda</h4>
+          <h4 className="text-xs font-bold text-foreground/70 uppercase tracking-wider">Your Holiday List</h4>
           {customHolidays.length === 0 ? (
-            <p className="text-xs text-muted-foreground text-center py-6">Belum ada hari libur kustom.</p>
+            <p className="text-xs text-muted-foreground text-center py-6">No custom holidays yet.</p>
           ) : (
             <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
               {customHolidays.map((ch: any) => (
@@ -183,14 +183,14 @@ export function HolidaySheet({
                   <div className="min-w-0">
                     <p className="font-bold text-amber-600 dark:text-amber-400 truncate">{ch.name}</p>
                     <p className="text-[10px] text-muted-foreground mt-0.5">
-                      {new Date(ch.startDate).toLocaleDateString("id-ID", { day: "numeric", month: "short", timeZone: "UTC" })} - {new Date(ch.endDate).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" })}
+                      {new Date(ch.startDate).toLocaleDateString("en-US", { day: "numeric", month: "short", timeZone: "UTC" })} - {new Date(ch.endDate).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" })}
                     </p>
                   </div>
                   {userProfile?.id === ch.userId && (
                     <button
                       onClick={() => handleHolidayDelete(ch.id)}
                       className="text-muted-foreground hover:text-destructive cursor-pointer p-1 animate-in fade-in"
-                      title="Hapus"
+                      title="Delete"
                     >
                       <HugeiconsIcon icon={Delete02Icon} className="h-4 w-4" />
                     </button>

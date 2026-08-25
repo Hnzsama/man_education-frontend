@@ -67,7 +67,7 @@ export default function DashboardPage() {
       const res = await fetch(`${API_URL}/api/users/me/export`, {
         headers: { Authorization: `Bearer ${token}` }
       })
-      if (!res.ok) throw new Error("Gagal mengekspor data")
+      if (!res.ok) throw new Error("Failed to export data")
       
       const data = await res.json()
       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2))
@@ -78,10 +78,10 @@ export default function DashboardPage() {
       downloadAnchor.click()
       downloadAnchor.remove()
       
-      toast.add({ type: "success", description: "Data berhasil diekspor! 🎉" })
+      toast.add({ type: "success", description: "Data exported successfully! 🎉" })
     } catch (err: any) {
       console.error(err)
-      toast.add({ type: "error", description: err.message || "Gagal melakukan ekspor data." })
+      toast.add({ type: "error", description: err.message || "Failed to export data." })
     } finally {
       setBackupLoading(false)
     }
@@ -108,16 +108,16 @@ export default function DashboardPage() {
           body: JSON.stringify(jsonContent)
         })
 
-        if (!res.ok) throw new Error("Gagal mengimpor data")
+        if (!res.ok) throw new Error("Failed to import data")
 
-        toast.add({ type: "success", description: "Data berhasil diimpor! Halaman akan dimuat ulang..." })
+        toast.add({ type: "success", description: "Data imported successfully! The page will reload..." })
         
         setTimeout(() => {
           window.location.reload()
         }, 1500)
       } catch (err: any) {
         console.error(err)
-        toast.add({ type: "error", description: err.message || "Format file backup tidak valid." })
+        toast.add({ type: "error", description: err.message || "Invalid backup file format." })
       } finally {
         setBackupLoading(false)
         e.target.value = ""
@@ -445,7 +445,7 @@ export default function DashboardPage() {
               {todayHolidayName && (
                 <div className="mb-4 p-3 rounded-xl border border-rose-500/20 bg-rose-500/5 text-rose-700 dark:text-rose-400 text-xs font-semibold flex items-center gap-2 font-sans">
                   <HugeiconsIcon icon={AlertCircleIcon} className="h-4 w-4 shrink-0 text-rose-500" />
-                  <span>Hari Libur: {todayHolidayName} (Kelas diliburkan)</span>
+                  <span>Holiday: {todayHolidayName} (Classes cancelled)</span>
                 </div>
               )}
               {todaySchedules.length === 0 ? (
@@ -638,7 +638,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-xs text-muted-foreground leading-normal">
-                Ekspor data Anda sebagai cadangan (backup) yang dapat langsung diimpor kembali ke akun ini atau akun Man Education lainnya secara aman. Relasi antar semester, mata kuliah, jadwal, dan tugas akan dipertahankan secara otomatis.
+                Export your data as a backup that can be securely imported back into this account or another Man Education account. Relationships between semesters, courses, schedules, and tasks will be maintained automatically.
               </p>
               
               <div className="flex flex-col sm:flex-row gap-3 pt-2">
@@ -649,9 +649,9 @@ export default function DashboardPage() {
                   className="flex-1 font-semibold"
                 >
                   <HugeiconsIcon icon={Download01Icon} className="mr-2 h-4 w-4" />
-                  {backupLoading ? "Exporting..." : "Ekspor Data (JSON)"}
+                  {backupLoading ? "Exporting..." : "Export Data (JSON)"}
                 </Button>
-
+ 
                 {/* Import Button / File Input */}
                 <div className="flex-1">
                   <input
@@ -668,7 +668,7 @@ export default function DashboardPage() {
                     onClick={() => fileInputRef.current?.click()}
                   >
                     <HugeiconsIcon icon={Upload01Icon} className="mr-2 h-4 w-4" />
-                    {backupLoading ? "Importing..." : "Impor Data (JSON)"}
+                    {backupLoading ? "Importing..." : "Import Data (JSON)"}
                   </Button>
                 </div>
               </div>

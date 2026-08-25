@@ -57,8 +57,8 @@ const data = {
       ),
     },
     {
-      title: "Berkas",
-      url: "/berkas",
+      title: "Files",
+      url: "/files",
       icon: (
         <HugeiconsIcon icon={Folder01Icon} strokeWidth={2} />
       ),

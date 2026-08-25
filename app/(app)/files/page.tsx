@@ -70,7 +70,7 @@ const COURSE_PALETTE = [
   "from-rose-500/20 to-rose-600/10 border-rose-500/30 text-rose-700 dark:text-rose-300",
 ]
 
-export default function BerkasPage() {
+export default function FilesPage() {
   const router = useRouter()
 
   const [courses, setCourses] = React.useState<any[]>([])
@@ -138,7 +138,7 @@ export default function BerkasPage() {
       const updatedTask = { ...selectedTask, attachments: [...(selectedTask.attachments || []), ...(Array.isArray(newAtts) ? newAtts : [])] }
       setSelectedTask(updatedTask)
       setTasks((prev) => prev.map((t) => t.id === selectedTask.id ? updatedTask : t))
-      toast.add({ type: "success", description: `${files.length} file berhasil diupload` })
+      toast.add({ type: "success", description: `${files.length} files uploaded successfully` })
     } catch (err: any) {
       toast.add({ type: "error", description: err.message })
     } finally {
@@ -154,11 +154,11 @@ export default function BerkasPage() {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       })
-      if (!res.ok) throw new Error("Gagal menghapus")
+      if (!res.ok) throw new Error("Failed to delete")
       const updatedTask = { ...selectedTask, attachments: (selectedTask.attachments || []).filter((a: any) => a.id !== attId) }
       setSelectedTask(updatedTask)
       setTasks((prev) => prev.map((t) => t.id === selectedTask.id ? updatedTask : t))
-      toast.add({ type: "success", description: "File dihapus" })
+      toast.add({ type: "success", description: "File deleted successfully" })
     } catch (err: any) {
       toast.add({ type: "error", description: err.message })
     }
@@ -186,7 +186,7 @@ export default function BerkasPage() {
         body: formData,
       })
       if (!res.ok) { const d = await res.json(); throw new Error(d.message) }
-      toast.add({ type: "success", description: "Materi berhasil disimpan!" })
+      toast.add({ type: "success", description: "Material saved successfully!" })
       setAddOpen(false)
       fetchAll()
     } catch (err: any) {
@@ -204,8 +204,8 @@ export default function BerkasPage() {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       })
-      if (!res.ok) throw new Error("Gagal menghapus")
-      toast.add({ type: "success", description: "Materi dihapus" })
+      if (!res.ok) throw new Error("Failed to delete")
+      toast.add({ type: "success", description: "Material deleted successfully" })
       fetchAll()
     } catch (err: any) {
       toast.add({ type: "error", description: err.message })
@@ -237,10 +237,10 @@ export default function BerkasPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
             <HugeiconsIcon icon={Folder01Icon} className="h-6 w-6 text-primary" />
-            Berkas & Materi
+            Files & Materials
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Semua berkas materi kuliah dan pengumpulan tugas dalam satu tempat.
+            All lecture materials and assignment submissions in one place.
           </p>
         </div>
 
@@ -268,8 +268,8 @@ export default function BerkasPage() {
                     <p className="text-[11px] font-mono opacity-70 mt-0.5">{course.code}</p>
                   </div>
                   <div className="text-[10px] font-semibold opacity-60 flex justify-between">
-                    <span>{resCount} materi</span>
-                    <span>{taskCount} tugas</span>
+                    <span>{resCount} materials</span>
+                    <span>{taskCount} tasks</span>
                   </div>
                 </button>
               )
@@ -301,11 +301,11 @@ export default function BerkasPage() {
             <div className="flex justify-between items-center">
               <h2 className="font-bold text-sm flex items-center gap-2">
                 <HugeiconsIcon icon={Attachment01Icon} className="h-4 w-4 text-emerald-500" />
-                Bukti Pengumpulan Tugas
+                Task Submissions
               </h2>
               {isOverdue && (
                 <span className="text-[10px] font-bold text-red-500 bg-red-500/10 border border-red-500/20 px-1.5 py-0.5 rounded">
-                  LEWAT DEADLINE
+                  PAST DEADLINE
                 </span>
               )}
             </div>
@@ -323,8 +323,8 @@ export default function BerkasPage() {
               }}
             >
               <HugeiconsIcon icon={Upload01Icon} className="h-7 w-7 text-muted-foreground/50" />
-              <p className="text-xs font-semibold">{subUploading ? "Mengupload…" : "Upload file pengumpulan"}</p>
-              <p className="text-[10px] text-muted-foreground/60">PDF, Word, Gambar, ZIP · Maks 10MB</p>
+              <p className="text-xs font-semibold">{subUploading ? "Uploading…" : "Upload submission files"}</p>
+              <p className="text-[10px] text-muted-foreground/60">PDF, Word, Image, ZIP · Max 10MB</p>
               <Input
                 ref={subFileInputRef}
                 type="file"
@@ -336,7 +336,7 @@ export default function BerkasPage() {
 
             <div className="space-y-2 mt-2">
               {taskSubmissions.length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-6">Belum ada file pengumpulan di upload.</p>
+                <p className="text-xs text-muted-foreground text-center py-6">No submission files uploaded yet.</p>
               ) : (
                 taskSubmissions.map((att: any) => {
                   const isImage = att.fileType?.startsWith("image/")
@@ -368,11 +368,11 @@ export default function BerkasPage() {
           <div className="flex flex-col gap-4 rounded-xl border bg-muted/5 p-5">
             <h2 className="font-bold text-sm flex items-center gap-2">
               <HugeiconsIcon icon={BookOpen01Icon} className="h-4 w-4 text-primary" />
-              Materi Terkait Tugas ini
+              Materials Related to this Task
             </h2>
             <div className="space-y-2">
               {taskResources.length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-6">Tidak ada materi tersemat untuk tugas ini.</p>
+                <p className="text-xs text-muted-foreground text-center py-6">No materials attached to this task.</p>
               ) : (
                 taskResources.map((r: any) => (
                   <div key={r.id} className="group flex items-center gap-3 rounded-lg border bg-background p-2.5">
@@ -420,7 +420,7 @@ export default function BerkasPage() {
             }}
           >
             <HugeiconsIcon icon={Add01Icon} className="h-3.5 w-3.5" />
-            Tambah Materi
+            Add Material
           </Button>
         </div>
       </div>
@@ -429,10 +429,10 @@ export default function BerkasPage() {
       <div className="flex flex-col gap-3">
         <h2 className="font-bold text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
           <HugeiconsIcon icon={Attachment01Icon} className="h-4 w-4" />
-          Folder Pengumpulan Tugas
+          Task Submission Folders
         </h2>
         {courseTasks.length === 0 ? (
-          <p className="text-xs text-muted-foreground bg-muted/10 border rounded-xl p-4 text-center">Belum ada tugas di matakuliah ini.</p>
+          <p className="text-xs text-muted-foreground bg-muted/10 border rounded-xl p-4 text-center">No tasks in this course.</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {courseTasks.map((task) => {
@@ -446,7 +446,7 @@ export default function BerkasPage() {
                   <HugeiconsIcon icon={Folder01Icon} className="h-9 w-9 text-amber-500 shrink-0 group-hover:scale-105 transition-transform" />
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-xs truncate">{task.title}</p>
-                    <span className="text-[10px] text-muted-foreground">{attCount} file dikumpulkan</span>
+                    <span className="text-[10px] text-muted-foreground">{attCount} files submitted</span>
                   </div>
                   {attCount > 0 && (
                     <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
@@ -462,10 +462,10 @@ export default function BerkasPage() {
       <div className="flex flex-col gap-3">
         <h2 className="font-bold text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
           <HugeiconsIcon icon={BookOpen01Icon} className="h-4 w-4" />
-          Materi Kuliah (Umum)
+          Lecture Materials (General)
         </h2>
         {courseResources.length === 0 ? (
-          <p className="text-xs text-muted-foreground bg-muted/10 border rounded-xl p-4 text-center">Belum ada file materi. Tambahkan materi baru di atas.</p>
+          <p className="text-xs text-muted-foreground bg-muted/10 border rounded-xl p-4 text-center">No materials available. Add a new material above.</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {courseResources.map((r) => {
@@ -493,7 +493,7 @@ export default function BerkasPage() {
                     ) : isLink && r.url ? (
                       <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate max-w-[150px]">{r.url}</a>
                     ) : (
-                      <span className="text-muted-foreground">Catatan</span>
+                      <span className="text-muted-foreground">Note</span>
                     )}
                     <span className="text-muted-foreground/60">{r.uploadStatus}</span>
                   </div>
@@ -536,7 +536,7 @@ function AddResourceDialog({
     <Sheet open={isOpen} onOpenChange={(v: boolean) => { if (!v) onClose() }}>
       <SheetContent side="right" className="w-[480px] sm:w-[480px] gap-0 p-0 overflow-hidden flex flex-col">
         <SheetHeader className="px-6 pt-6 pb-4 border-b border-border/40">
-          <SheetTitle className="text-base">Tambah Materi Kuliah</SheetTitle>
+          <SheetTitle className="text-base">Add Lecture Material</SheetTitle>
           {course && (
             <SheetDescription className="text-xs">
               📁 {course.name} ({course.code})
@@ -550,7 +550,7 @@ function AddResourceDialog({
             {[
               { value: "FILE", label: "File", icon: File01Icon },
               { value: "LINK", label: "Link", icon: Link01Icon },
-              { value: "NOTE", label: "Catatan", icon: NoteIcon },
+              { value: "NOTE", label: "Note", icon: NoteIcon },
             ].map(({ value, label, icon }) => (
               <button
                 key={value}
@@ -569,11 +569,11 @@ function AddResourceDialog({
           </div>
 
           <Field>
-            <FieldLabel className="text-xs font-semibold">Judul *</FieldLabel>
+            <FieldLabel className="text-xs font-semibold">Title *</FieldLabel>
             <Input
               value={addTitle}
               onChange={(e: any) => setAddTitle(e.target.value)}
-              placeholder="e.g. Slide Pertemuan 3"
+              placeholder="e.g. Slide Meeting 3"
               className="h-9 text-sm"
               required
             />
@@ -597,7 +597,7 @@ function AddResourceDialog({
                 {addFile ? (
                   <p className="text-xs font-semibold text-primary">{addFile.name} ({formatBytes(addFile.size)})</p>
                 ) : (
-                  <p className="text-xs text-muted-foreground">Drag & drop atau klik pilih file<br /><span className="text-[10px] opacity-60">PDF, Word, Excel, Gambar, ZIP · Maks 10MB</span></p>
+                  <p className="text-xs text-muted-foreground">Drag & drop or click to select file<br /><span className="text-[10px] opacity-60">PDF, Word, Excel, Image, ZIP · Max 10MB</span></p>
                 )}
                 <Input
                   ref={fileInputRef}
@@ -623,26 +623,26 @@ function AddResourceDialog({
           )}
 
           <Field>
-            <FieldLabel className="text-xs font-semibold">Deskripsi (opsional)</FieldLabel>
+            <FieldLabel className="text-xs font-semibold">Description (optional)</FieldLabel>
             <Input
               value={addDesc}
               onChange={(e: any) => setAddDesc(e.target.value)}
-              placeholder="Keterangan singkat..."
+              placeholder="Brief description..."
               className="h-9 text-sm"
             />
           </Field>
 
           <Field>
-            <FieldLabel className="text-xs font-semibold">Link ke Tugas (opsional)</FieldLabel>
+            <FieldLabel className="text-xs font-semibold">Link to Task (optional)</FieldLabel>
             <Select value={addTaskId} onValueChange={setAddTaskId}>
               <SelectTrigger className="w-full h-9">
                 <span data-slot="select-value" className="text-sm truncate">
-                  {addTaskId === "none" ? "Umum (Tidak tersemat tugas)" : tasks.find((t: any) => t.id === addTaskId)?.title || "Pilih tugas..."}
+                  {addTaskId === "none" ? "General (Not linked to any task)" : tasks.find((t: any) => t.id === addTaskId)?.title || "Select task..."}
                 </span>
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
-                  <SelectItem value="none">Umum (Tidak tersemat tugas)</SelectItem>
+                  <SelectItem value="none">General (Not linked to any task)</SelectItem>
                   {tasks.map((t: any) => (
                     <SelectItem key={t.id} value={t.id}>
                       <span className="truncate max-w-[300px] block">{t.title}</span>
@@ -655,10 +655,10 @@ function AddResourceDialog({
 
           <div className="flex gap-3 pt-2 border-t border-border/30">
             <Button type="button" variant="outline" className="flex-1 h-9" onClick={onClose}>
-              Batal
+              Cancel
             </Button>
             <Button type="submit" className="flex-1 h-9" disabled={addLoading}>
-              {addLoading ? "Menyimpan…" : "Simpan"}
+              {addLoading ? "Saving…" : "Save"}
             </Button>
           </div>
         </form>

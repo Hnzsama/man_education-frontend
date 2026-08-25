@@ -73,12 +73,12 @@ export function AttachmentDialog({
       })
       if (!res.ok) {
         const err = await res.json()
-        throw new Error(err.message || "Upload gagal")
+        throw new Error(err.message || "Upload failed")
       }
       const newAtts = await res.json()  // backend returns array of new attachments
       setAttachments((prev) => [...prev, ...(Array.isArray(newAtts) ? newAtts : [])])
       onChanged()
-      toast.add({ type: "success", description: `${files.length} file berhasil diupload` })
+      toast.add({ type: "success", description: `${files.length} files uploaded successfully` })
     } catch (err: any) {
       toast.add({ type: "error", description: err.message })
     } finally {
@@ -108,10 +108,10 @@ export function AttachmentDialog({
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       })
-      if (!res.ok) throw new Error("Gagal menghapus lampiran")
+      if (!res.ok) throw new Error("Failed to delete attachment")
       setAttachments((prev) => prev.filter((a) => a.id !== attId))
       onChanged()
-      toast.add({ type: "success", description: "Lampiran dihapus" })
+      toast.add({ type: "success", description: "Attachment deleted" })
     } catch (err: any) {
       toast.add({ type: "error", description: err.message })
     }
@@ -123,7 +123,7 @@ export function AttachmentDialog({
         <SheetHeader className="px-6 pt-6 pb-4 border-b border-border/40 shrink-0">
           <SheetTitle className="text-base flex items-center gap-2">
             <HugeiconsIcon icon={File01Icon} className="h-4 w-4 text-primary" />
-            Lampiran Tugas
+            Task Attachments
           </SheetTitle>
           <SheetDescription className="text-xs line-clamp-1">{taskTitle}</SheetDescription>
         </SheetHeader>
@@ -147,10 +147,10 @@ export function AttachmentDialog({
               />
               <div>
                 <p className="text-sm font-semibold">
-                  {uploading ? "Sedang mengupload…" : "Upload file lampiran"}
+                  {uploading ? "Uploading…" : "Upload attachment file"}
                 </p>
-                <p className="text-xs text-muted-foreground mt-0.5">Drag & drop atau klik untuk pilih file</p>
-                <p className="text-[10px] text-muted-foreground/60 mt-1">PDF, Word, Excel, Gambar, ZIP · Maks 10MB</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Drag & drop or click to select file</p>
+                <p className="text-[10px] text-muted-foreground/60 mt-1">PDF, Word, Excel, Image, ZIP · Max 10MB</p>
               </div>
               <Input
                 ref={fileInputRef}
@@ -168,12 +168,12 @@ export function AttachmentDialog({
             {attachments.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 text-muted-foreground gap-2">
                 <HugeiconsIcon icon={File01Icon} className="h-10 w-10 opacity-20" />
-                <p className="text-xs text-center">Belum ada lampiran.<br />Upload file di atas untuk menyimpan berkas tugas.</p>
+                <p className="text-xs text-center">No attachments yet.<br />Upload files above to save assignment documents.</p>
               </div>
             ) : (
               <div className="space-y-2">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-3">
-                  {attachments.length} lampiran tersimpan
+                  {attachments.length} attachments saved
                 </p>
                 {attachments.map((att: any) => {
                   const isImage = att.fileType?.startsWith("image/")
@@ -216,7 +216,7 @@ export function AttachmentDialog({
                             className="text-[10px] text-primary hover:underline flex items-center gap-0.5"
                           >
                             <HugeiconsIcon icon={Link01Icon} className="h-3 w-3" />
-                            Buka
+                            Open
                           </a>
                         </div>
                       </div>
@@ -225,7 +225,7 @@ export function AttachmentDialog({
                         size="sm"
                         className="h-8 w-8 p-0 shrink-0 opacity-0 group-hover:opacity-100 text-destructive hover:bg-destructive/10 hover:text-destructive transition-all"
                         onClick={() => handleDelete(att.id)}
-                        title="Hapus lampiran"
+                        title="Delete attachment"
                       >
                         <HugeiconsIcon icon={Delete02Icon} className="h-4 w-4" />
                       </Button>
@@ -238,8 +238,8 @@ export function AttachmentDialog({
         </div>
 
         <div className="px-6 py-3 border-t border-border/30 bg-muted/10 flex items-center justify-between shrink-0">
-          <p className="text-[11px] text-muted-foreground">File disimpan di server secara aman</p>
-          <Button variant="outline" size="sm" className="h-8 text-xs" onClick={onClose}>Tutup</Button>
+          <p className="text-[11px] text-muted-foreground">Files are stored securely on the server</p>
+          <Button variant="outline" size="sm" className="h-8 text-xs" onClick={onClose}>Close</Button>
         </div>
       </SheetContent>
     </Sheet>

@@ -188,8 +188,8 @@ export function TaskSheet({
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` }
       })
-      if (!res.ok) throw new Error("Gagal menghapus lampiran")
-      toast.add({ type: "success", description: "Lampiran berhasil dihapus" })
+      if (!res.ok) throw new Error("Failed to delete attachment")
+      toast.add({ type: "success", description: "Attachment successfully deleted" })
       setExistingAttachments(prev => prev.filter(att => att.id !== attachmentId))
       onSaveSuccess()
     } catch (err: any) {
@@ -304,17 +304,17 @@ export function TaskSheet({
                 onCheckedChange={(checked) => setIsGroupTask(!!checked)}
               />
               <label htmlFor="isGroupTask" className="text-xs font-semibold select-none cursor-pointer">
-                Tugas Kelompok
+                Group Task
               </label>
             </div>
 
             {isGroupTask && (
               <Field>
-                <FieldLabel className="text-xs font-semibold">Porsi Tugas Saya</FieldLabel>
+                <FieldLabel className="text-xs font-semibold">My Part in Task</FieldLabel>
                 <Input
                   value={myPart}
                   onChange={(e) => setMyPart(e.target.value)}
-                  placeholder="e.g. Desain UI & frontend"
+                  placeholder="e.g. UI Design & frontend"
                   className="h-9 text-sm"
                 />
               </Field>
@@ -322,7 +322,7 @@ export function TaskSheet({
 
             <div className="grid grid-cols-2 gap-3">
               <Field>
-                <FieldLabel className="text-xs font-semibold">Bobot Nilai (%)</FieldLabel>
+                <FieldLabel className="text-xs font-semibold">Grade Weight (%)</FieldLabel>
                 <Input
                   type="number"
                   value={weightPercentage}
@@ -332,7 +332,7 @@ export function TaskSheet({
                 />
               </Field>
               <Field>
-                <FieldLabel className="text-xs font-semibold">Metode Pengumpulan</FieldLabel>
+                <FieldLabel className="text-xs font-semibold">Submission Method</FieldLabel>
                 <Select value={submissionMethod} onValueChange={(v) => setSubmissionMethod(v || "OFFLINE")}>
                   <SelectTrigger className="w-full h-9">
                     <span data-slot="select-value" className="text-sm">{submissionMethod}</span>
@@ -342,16 +342,16 @@ export function TaskSheet({
                       <SelectItem value="OFFLINE">Offline</SelectItem>
                       <SelectItem value="GFORM">Google Form</SelectItem>
                       <SelectItem value="EMAIL">Email</SelectItem>
-                      <SelectItem value="LMS">LMS Kampus</SelectItem>
+                      <SelectItem value="LMS">Campus LMS</SelectItem>
                       <SelectItem value="UPLOAD">Upload</SelectItem>
                     </SelectGroup>
                   </SelectContent>
                 </Select>
               </Field>
             </div>
-
+ 
             <Field>
-              <FieldLabel className="text-xs font-semibold">Link Pengumpulan</FieldLabel>
+              <FieldLabel className="text-xs font-semibold">Submission Link</FieldLabel>
               <Input
                 value={submissionLink}
                 onChange={(e) => setSubmissionLink(e.target.value)}
@@ -364,7 +364,7 @@ export function TaskSheet({
             {editingTaskId && existingAttachments.length > 0 && (
               <div className="space-y-2 pt-2 border-t border-border/30">
                 <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">
-                  Lampiran Saat Ini
+                  Current Attachments
                 </span>
                 <div className="grid gap-2">
                   {existingAttachments.map((att: any) => {
@@ -413,9 +413,8 @@ export function TaskSheet({
               </div>
             )}
 
-            {/* Upload Files Input */}
             <Field>
-              <FieldLabel className="text-xs font-semibold">Tambahkan Lampiran (File/Gambar)</FieldLabel>
+              <FieldLabel className="text-xs font-semibold">Add Attachment (File/Image)</FieldLabel>
               <div className="flex flex-col gap-2">
                 <Input
                   id="task-files"
@@ -438,7 +437,7 @@ export function TaskSheet({
                 />
                 {selectedFiles.length > 0 && (
                   <div className="text-[11px] text-muted-foreground mt-2 space-y-1.5 border-l-2 border-primary/50 pl-2">
-                    <span className="font-bold block mb-1">File terpilih untuk diunggah:</span>
+                    <span className="font-bold block mb-1">Files selected for upload:</span>
                     {selectedFiles.map((file, idx) => (
                       <div key={idx} className="flex items-center justify-between gap-2 bg-muted/10 p-1.5 rounded pr-2">
                         <span className="truncate max-w-[200px] font-medium">• {file.name} ({(file.size / 1024).toFixed(1)} KB)</span>
@@ -447,7 +446,7 @@ export function TaskSheet({
                           onClick={() => setSelectedFiles((prev) => prev.filter((_, i) => i !== idx))}
                           className="text-destructive hover:underline font-semibold text-[10px]"
                         >
-                          Batal
+                          Cancel
                         </button>
                       </div>
                     ))}

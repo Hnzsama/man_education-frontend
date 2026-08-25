@@ -74,9 +74,9 @@ export default function ProfilePage() {
         }),
       })
       if (!res.ok) throw new Error()
-      setMessage({ type: "success", text: "Nomor WhatsApp berhasil disimpan! 🎉" })
+      setMessage({ type: "success", text: "WhatsApp number successfully saved! 🎉" })
     } catch (err) {
-      setMessage({ type: "error", text: "Gagal menyimpan nomor WhatsApp." })
+      setMessage({ type: "error", text: "Failed to save WhatsApp number." })
     } finally {
       setSaving(false)
     }
@@ -93,7 +93,7 @@ export default function ProfilePage() {
     )
   }
 
-  const creationDate = user?.createdAt ? new Date(user.createdAt).toLocaleDateString("id-ID", {
+  const creationDate = user?.createdAt ? new Date(user.createdAt).toLocaleDateString("en-US", {
     day: "numeric",
     month: "long",
     year: "numeric"
@@ -141,7 +141,7 @@ export default function ProfilePage() {
             </div>
           </CardContent>
         </Card>
-
+ 
         {/* WhatsApp Settings Card */}
         {user?.role === "INDIVIDUAL" && (
           <Card>
@@ -158,17 +158,17 @@ export default function ProfilePage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-1.5">
-                <Label htmlFor="whatsapp" className="text-sm font-semibold">Nomor WhatsApp Pribadi</Label>
+                <Label htmlFor="whatsapp" className="text-sm font-semibold">Personal WhatsApp Number</Label>
                 <Input
                   id="whatsapp"
                   type="text"
-                  placeholder="Contoh: 628123456789"
+                  placeholder="Example: 628123456789"
                   value={whatsappNumber}
                   onChange={(e) => setWhatsappNumber(e.target.value)}
                   className="max-w-md h-10"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Masukkan nomor telepon diawali kode negara (misal: 62 untuk Indonesia) tanpa spasi atau tanda +.
+                  Enter phone number starting with country code (e.g., 62 for Indonesia) without spaces or + sign.
                 </p>
               </div>
               {message && (
