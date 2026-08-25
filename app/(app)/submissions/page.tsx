@@ -119,11 +119,11 @@ export default function SubmissionsPage() {
         body: formData,
       })
       if (!res.ok) { const e = await res.json(); throw new Error(e.message) }
-      const updated = await res.json()
-      const newAtts = updated.attachments || []
-      setLocalAttachments(newAtts)
+      const newAtts = await res.json()  // backend returns array of new attachments
+      const appended = [...localAttachments, ...(Array.isArray(newAtts) ? newAtts : [])]
+      setLocalAttachments(appended)
       // update in tasks list too
-      setTasks((prev) => prev.map((t) => t.id === activeTask.id ? { ...t, attachments: newAtts } : t))
+      setTasks((prev) => prev.map((t) => t.id === activeTask.id ? { ...t, attachments: appended } : t))
       toast.add({ type: "success", description: `${files.length} file berhasil diupload` })
     } catch (err: any) {
       toast.add({ type: "error", description: err.message })

@@ -75,8 +75,8 @@ export function AttachmentDialog({
         const err = await res.json()
         throw new Error(err.message || "Upload gagal")
       }
-      const updated = await res.json()
-      setAttachments(updated.attachments || [])
+      const newAtts = await res.json()  // backend returns array of new attachments
+      setAttachments((prev) => [...prev, ...(Array.isArray(newAtts) ? newAtts : [])])
       onChanged()
       toast.add({ type: "success", description: `${files.length} file berhasil diupload` })
     } catch (err: any) {
