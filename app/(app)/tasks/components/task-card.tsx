@@ -18,8 +18,10 @@ import {
   Delete02Icon,
   UserGroupIcon,
   File01Icon,
-  Link01Icon
+  Link01Icon,
+  Attachment01Icon,
 } from "@hugeicons/core-free-icons"
+import { AttachmentDialog } from "./attachment-dialog"
 
 interface TaskCardProps {
   task: any
@@ -28,6 +30,7 @@ interface TaskCardProps {
   handleQuickComplete: (task: any) => void
   handleEditClick: (task: any) => void
   handleDeleteClick: (id: string) => void
+  onTaskUpdated?: () => void
 }
 
 export function TaskCard({
@@ -37,7 +40,14 @@ export function TaskCard({
   handleQuickComplete,
   handleEditClick,
   handleDeleteClick,
+  onTaskUpdated,
 }: TaskCardProps) {
+  const [attachDialogOpen, setAttachDialogOpen] = React.useState(false)
+  const [localAttachments, setLocalAttachments] = React.useState<any[]>(task.attachments || [])
+
+  // Sync attachments when task prop changes
+  React.useEffect(() => { setLocalAttachments(task.attachments || []) }, [task.attachments])
+
   const matchedCourse = courses.find((c) => c.id === task.courseId)
   const isDone = task.status === "DONE"
   const isHigh = task.priority === "HIGH"
@@ -206,6 +216,23 @@ export function TaskCard({
           </span>
         )}
         <div className="flex items-center gap-1">
+          {/* Attachment button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className={`h-8 px-2 text-xs gap-1 ${
+              localAttachments.length > 0
+                ? "text-primary hover:bg-primary/10 hover:text-primary"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+            onClick={() => setAttachDialogOpen(true)}
+            title="Lihat & kelola lampiran"
+          >
+            <HugeiconsIcon icon={Attachment01Icon} className="h-3.5 w-3.5" />
+            {localAttachments.length > 0 && (
+              <span className="font-bold">{localAttachments.length}</span>
+            )}
+          </Button>
           <Button
             variant="ghost"
             size="sm"
@@ -224,6 +251,17 @@ export function TaskCard({
           </Button>
         </div>
       </CardFooter>
+
+      <AttachmentDialog
+        taskId={task.id}
+        taskTitle={task.title}
+        initialAttachments={localAttachments}
+        isOpen={attachDialogOpen}
+        onClose={() => setAttachDialogOpen(false)}
+        onChanged={() => {
+          onTaskUpdated?.()
+        }}
+      />
     </Card>
   )
 }

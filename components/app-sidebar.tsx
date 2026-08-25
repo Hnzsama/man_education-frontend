@@ -57,6 +57,13 @@ const data = {
       ),
     },
     {
+      title: "Materi",
+      url: "/resources",
+      icon: (
+        <HugeiconsIcon icon={Folder01Icon} strokeWidth={2} />
+      ),
+    },
+    {
       title: "Calendar",
       url: "/calendar",
       icon: (
