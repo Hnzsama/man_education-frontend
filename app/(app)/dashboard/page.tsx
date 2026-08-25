@@ -168,11 +168,47 @@ export default function DashboardPage() {
             // Extract today's schedules
             const todayNum = getTodayDayOfWeek()
             const todayScheds: any[] = []
+            const now = new Date()
+            const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
+
             coursesData.forEach((course: any) => {
               if (course.schedules && Array.isArray(course.schedules)) {
                 course.schedules.forEach((s: any) => {
                   if (s.dayOfWeek === todayNum) {
-                    todayScheds.push({ ...s, courseName: course.name, courseCode: course.code })
+                    const exception = s.exceptions?.find((e: any) => e.date === todayStr)
+                    let isCancelled = false
+                    let isMoved = false
+                    let targetStartTime = s.startTime
+                    let targetEndTime = s.endTime
+                    let targetRoom = s.room
+                    let targetLink = s.link
+                    let note = ""
+
+                    if (exception) {
+                      if (exception.type === "CANCELLED") {
+                        isCancelled = true
+                      } else if (exception.type === "MOVED") {
+                        isMoved = true
+                        if (exception.newStartTime) targetStartTime = exception.newStartTime
+                        if (exception.newEndTime) targetEndTime = exception.newEndTime
+                        if (exception.newRoom) targetRoom = exception.newRoom
+                        if (exception.newLink) targetLink = exception.newLink
+                      }
+                      note = exception.note || ""
+                    }
+
+                    todayScheds.push({ 
+                      ...s, 
+                      startTime: targetStartTime,
+                      endTime: targetEndTime,
+                      room: targetRoom,
+                      link: targetLink,
+                      courseName: course.name, 
+                      courseCode: course.code,
+                      isCancelled,
+                      isMoved,
+                      note
+                    })
                   }
                 })
               }
@@ -381,23 +417,51 @@ export default function DashboardPage() {
                   {todaySchedules.map((s) => (
                     <div 
                       key={s.id} 
-                      className="flex items-center justify-between p-3.5 rounded-xl border border-border/60 bg-muted/20"
+                      className={`flex flex-col gap-1.5 p-3.5 rounded-xl border transition-all ${
+                        s.isCancelled 
+                          ? "border-destructive/20 bg-destructive/5 opacity-70" 
+                          : s.isMoved
+                            ? "border-amber-500/40 bg-amber-500/5"
+                            : "border-border/60 bg-muted/20"
+                      }`}
                     >
-                      <div className="space-y-1">
-                        <span className="font-bold text-sm text-foreground block">{s.courseName}</span>
-                        <span className="text-[10px] text-primary font-semibold font-mono block">{s.courseCode}</span>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <div className="flex items-center gap-1.5 justify-end text-xs text-foreground font-semibold">
-                          <HugeiconsIcon icon={Clock01Icon} className="h-3.5 w-3.5 text-primary" />
-                          <span>{s.startTime} - {s.endTime}</span>
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className={`font-bold text-sm text-foreground block ${s.isCancelled ? "line-through text-muted-foreground" : ""}`}>
+                              {s.courseName}
+                            </span>
+                            {s.isCancelled && (
+                              <Badge variant="destructive" className="text-[9px] px-1.5 py-0 h-4 font-semibold">
+                                Cancelled
+                              </Badge>
+                            )}
+                            {s.isMoved && (
+                              <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30">
+                                Rescheduled
+                              </Badge>
+                            )}
+                          </div>
+                          <span className="text-[10px] text-primary font-semibold font-mono block">{s.courseCode}</span>
                         </div>
-                        {s.room && (
-                          <span className="text-[10px] text-muted-foreground block mt-0.5">
-                            {s.room.toLowerCase().includes("room") || s.room.toLowerCase().includes("lab") ? s.room : `Room ${s.room}`}
-                          </span>
-                        )}
+                        <div className="text-right shrink-0">
+                          <div className={`flex items-center gap-1.5 justify-end text-xs font-semibold ${s.isCancelled ? "line-through text-muted-foreground" : "text-foreground"}`}>
+                            <HugeiconsIcon icon={Clock01Icon} className="h-3.5 w-3.5 text-primary" />
+                            <span>{s.startTime} - {s.endTime}</span>
+                          </div>
+                          {s.room && (
+                            <span className="text-[10px] text-muted-foreground block mt-0.5">
+                              {s.room.toLowerCase().includes("room") || s.room.toLowerCase().includes("lab") ? s.room : `Room ${s.room}`}
+                            </span>
+                          )}
+                        </div>
                       </div>
+                      {s.note && (
+                        <div className="text-[10px] text-muted-foreground border-t border-border/30 pt-1.5 mt-0.5 italic flex items-start gap-1">
+                          <span className="font-semibold shrink-0">Note:</span>
+                          <span>{s.note}</span>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
