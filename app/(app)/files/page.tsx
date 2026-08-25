@@ -310,7 +310,10 @@ export default function FilesPage() {
           </Button>
           <div className="flex flex-col">
             <span className="text-[10px] font-bold text-primary uppercase tracking-wider">{selectedCourse.name}</span>
-            <h1 className="text-xl font-bold tracking-tight">📁 {selectedTask.title}</h1>
+            <h1 className="text-xl font-bold tracking-tight flex items-center gap-1.5">
+              <HugeiconsIcon icon={Folder01Icon} className="h-5 w-5 text-amber-500 shrink-0" />
+              <span>{selectedTask.title}</span>
+            </h1>
           </div>
         </div>
 
@@ -557,8 +560,9 @@ function AddResourceDialog({
         <SheetHeader className="px-6 pt-6 pb-4 border-b border-border/40">
           <SheetTitle className="text-base">Add Lecture Material</SheetTitle>
           {course && (
-            <SheetDescription className="text-xs">
-              📁 {course.name} ({course.code})
+            <SheetDescription className="text-xs flex items-center gap-1.5 mt-1">
+              <HugeiconsIcon icon={Folder01Icon} className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+              <span>{course.name} ({course.code})</span>
             </SheetDescription>
           )}
         </SheetHeader>
