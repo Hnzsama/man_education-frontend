@@ -262,6 +262,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               <HugeiconsIcon icon={Calendar02Icon} strokeWidth={2} />
             ),
           },
+          {
+            title: "Man Finance",
+            url: process.env.NEXT_PUBLIC_MAN_FINANCE_URL || "https://pension-minus-newer-insight.trycloudflare.com",
+            icon: (
+              <HugeiconsIcon icon={Analytics01Icon} strokeWidth={2} />
+            ),
+          },
         ]} />
 
         {/* Class Section */}

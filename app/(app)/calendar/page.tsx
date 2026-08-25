@@ -4,25 +4,7 @@ import { API_URL } from "@/lib/config"
 import * as React from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Field, FieldLabel } from "@/components/ui/field"
 import { Badge } from "@/components/ui/badge"
-import { Checkbox } from "@/components/ui/checkbox"
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from "@/components/ui/sheet"
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
   Clock01Icon,
@@ -31,7 +13,6 @@ import {
   ArrowRight01Icon,
   Calendar02Icon,
   File01Icon,
-  CheckmarkCircle01Icon,
   Add01Icon,
   Delete02Icon,
   PencilEdit01Icon,
@@ -41,9 +22,15 @@ import {
 } from "@hugeicons/core-free-icons"
 import { toast } from "@/components/ui/toast"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
-import { Calendar } from "@/components/ui/calendar"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { format } from "date-fns"
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet"
+import { Field, FieldLabel } from "@/components/ui/field"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger } from "@/components/ui/select"
+
+// Import modular local components
+import { CalendarEventSheet } from "./components/calendar-event-sheet"
+import { HolidaySheet } from "./components/holiday-sheet"
+import { AgendaSidebar } from "./components/agenda-sidebar"
 
 function getCookie(name: string) {
   if (typeof document === "undefined") return undefined
@@ -89,23 +76,6 @@ export default function CalendarPage() {
   const [sheetOpen,      setSheetOpen]      = React.useState(false)
   const [editingTask,    setEditingTask]    = React.useState<any|null>(null)
   const [prefillDate,    setPrefillDate]    = React.useState("")
-  const [formLoading,    setFormLoading]    = React.useState(false)
-
-  const [fTitle,       setFTitle]       = React.useState("")
-  const [fDesc,        setFDesc]        = React.useState("")
-  const [fCourseId,    setFCourseId]    = React.useState("none")
-  const [fDeadline,    setFDeadline]    = React.useState("")
-  const [fStatus,      setFStatus]      = React.useState("PENDING")
-  const [fPriority,    setFPriority]    = React.useState("MEDIUM")
-
-  const [fIsGroupTask, setFIsGroupTask] = React.useState(false)
-  const [fMyPart, setFMyPart] = React.useState("")
-  const [fWeight, setFWeight] = React.useState("")
-  const [fSubMethod, setFSubMethod] = React.useState("OFFLINE")
-  const [fSubLink, setFSubLink] = React.useState("")
-
-  const [checklistItems, setChecklistItems] = React.useState<any[]>([])
-  const [newCheckTitle, setNewCheckTitle] = React.useState("")
 
   const [quickAddTaskText, setQuickAddTaskText] = React.useState("")
   const [quickAddLoading, setQuickAddLoading] = React.useState(false)
@@ -117,10 +87,6 @@ export default function CalendarPage() {
   // Profile & Custom Holidays state
   const [userProfile, setUserProfile] = React.useState<any|null>(null)
   const [holidaySheetOpen, setHolidaySheetOpen] = React.useState(false)
-  const [hName, setHName] = React.useState("")
-  const [hStart, setHStart] = React.useState("")
-  const [hEnd, setHEnd] = React.useState("")
-  const [hLoading, setHLoading] = React.useState(false)
 
   // Schedule Exceptions state
   const [exceptionSheetOpen, setExceptionSheetOpen] = React.useState(false)
@@ -311,75 +277,20 @@ export default function CalendarPage() {
   // ─── Form Helpers ────────────────────────────────────────────
   const openAddSheet = (date?: Date) => {
     setEditingTask(null)
-    setFTitle(""); setFDesc(""); setFCourseId("none")
-    setFStatus("PENDING"); setFPriority("MEDIUM")
-    setFIsGroupTask(false); setFMyPart(""); setFWeight(""); setFSubMethod("OFFLINE"); setFSubLink("")
-    setChecklistItems([])
     const dl = date ? `${toDateStr(date)}T23:59` : ""
-    setFDeadline(dl); setPrefillDate(dl)
+    setPrefillDate(dl)
     setSheetOpen(true)
-  }
-
-  const toLocalDateTimeString = (dateStr: string) => {
-    if (!dateStr) return ""
-    const localDate = new Date(dateStr)
-    const offset = localDate.getTimezoneOffset()
-    const adjustedDate = new Date(localDate.getTime() - (offset * 60 * 1000))
-    return adjustedDate.toISOString().slice(0, 16)
   }
 
   const openEditSheet = (task: any) => {
     setEditingTask(task)
-    setFTitle(task.title)
-    setFDesc(task.description || "")
-    setFCourseId(task.courseId || "none")
-    setFDeadline(toLocalDateTimeString(task.deadline))
-    setFStatus(task.status)
-    setFPriority(task.priority)
-    setFIsGroupTask(task.isGroupTask || false)
-    setFMyPart(task.myPart || "")
-    setFWeight(task.weightPercentage?.toString() || "")
-    setFSubMethod(task.submissionMethod || "OFFLINE")
-    setFSubLink(task.submissionLink || "")
-    setChecklistItems(task.checklist || [])
     setSheetOpen(true)
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setFormLoading(true)
-    const token = getCookie("token")
-    if (!token) return
-
-    try {
-      const url    = editingTask ? `${API_URL}/api/tasks/${editingTask.id}` : `${API_URL}/api/tasks`
-      const method = editingTask ? "PUT" : "POST"
-
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type":"application/json", Authorization:`Bearer ${token}` },
-        body: JSON.stringify({
-          title: fTitle,
-          description: fDesc || undefined,
-          courseId: fCourseId === "none" ? undefined : fCourseId,
-          deadline: new Date(fDeadline).toISOString(),
-          status: fStatus,
-          priority: fPriority,
-          isGroupTask: fIsGroupTask,
-          myPart: fIsGroupTask ? fMyPart : undefined,
-          weightPercentage: fWeight ? parseInt(fWeight) : undefined,
-          submissionMethod: fSubMethod,
-          submissionLink: fSubLink || undefined,
-        }),
-      })
-      if (!res.ok) { const d = await res.json(); throw new Error(d.message) }
-
-      toast.add({ type:"success", description: editingTask ? "Task updated!" : "Task added to calendar!" })
-      setSheetOpen(false)
-      fetchData()
-    } catch (err: any) {
-      toast.add({ type:"error", description: err.message || "Failed to save task" })
-    } finally { setFormLoading(false) }
+  const handleDeleteRequest = (id: string) => {
+    setDeleteId(id)
+    setSheetOpen(false)
+    setConfirmOpen(true)
   }
 
   const handleDeleteConfirm = async () => {
@@ -394,61 +305,6 @@ export default function CalendarPage() {
       fetchData()
     } catch { toast.add({ type:"error", description:"Failed to delete task" }) }
     finally { setDeleteId(null); setConfirmOpen(false) }
-  }
-
-  const handleToggleCheckItem = async (itemId: string, isCompleted: boolean) => {
-    if (!editingTask) return
-    const token = getCookie("token")
-    if (!token) return
-    try {
-      const res = await fetch(`${API_URL}/api/tasks/${editingTask.id}/checklist/${itemId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ isCompleted }),
-      })
-      if (!res.ok) throw new Error("Failed to toggle item")
-      setChecklistItems(prev => prev.map(item => item.id === itemId ? { ...item, isCompleted } : item))
-      fetchData()
-    } catch (err: any) {
-      toast.add({ type: "error", description: err.message })
-    }
-  }
-
-  const handleDeleteCheckItem = async (itemId: string) => {
-    if (!editingTask) return
-    const token = getCookie("token")
-    if (!token) return
-    try {
-      const res = await fetch(`${API_URL}/api/tasks/${editingTask.id}/checklist/${itemId}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      if (!res.ok) throw new Error("Failed to delete item")
-      setChecklistItems(prev => prev.filter(item => item.id !== itemId))
-      fetchData()
-    } catch (err: any) {
-      toast.add({ type: "error", description: err.message })
-    }
-  }
-
-  const handleAddCheckItem = async () => {
-    if (!editingTask || !newCheckTitle.trim()) return
-    const token = getCookie("token")
-    if (!token) return
-    try {
-      const res = await fetch(`${API_URL}/api/tasks/${editingTask.id}/checklist`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ title: newCheckTitle }),
-      })
-      if (!res.ok) throw new Error("Failed to add item")
-      const newItem = await res.json()
-      setChecklistItems(prev => [...prev, newItem])
-      setNewCheckTitle("")
-      fetchData()
-    } catch (err: any) {
-      toast.add({ type: "error", description: err.message })
-    }
   }
 
   const handleQuickAddSubmit = async () => {
@@ -473,50 +329,6 @@ export default function CalendarPage() {
       toast.add({ type: "error", description: err.message })
     } finally {
       setQuickAddLoading(false)
-    }
-  }
-
-  const handleHolidaySubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!hName || !hStart || !hEnd) {
-      toast.add({ type: "error", description: "Lengkapi semua field libur!" })
-      return
-    }
-    setHLoading(true)
-    const token = getCookie("token")
-    if (!token) return
-    try {
-      const res = await fetch(`${API_URL}/api/custom-holidays`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          name: hName,
-          startDate: hStart,
-          endDate: hEnd,
-        }),
-      })
-      if (!res.ok) { const d = await res.json(); throw new Error(d.message) }
-      toast.add({ type: "success", description: "Libur kampus berhasil ditambahkan!" })
-      setHName(""); setHStart(""); setHEnd("")
-      fetchData()
-    } catch (err: any) {
-      toast.add({ type: "error", description: err.message || "Gagal menyimpan libur" })
-    } finally { setHLoading(false) }
-  }
-
-  const handleHolidayDelete = async (id: string) => {
-    const token = getCookie("token")
-    if (!token) return
-    try {
-      const res = await fetch(`${API_URL}/api/custom-holidays/${id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      if (!res.ok) { const d = await res.json(); throw new Error(d.message) }
-      toast.add({ type: "success", description: "Libur kampus dihapus!" })
-      fetchData()
-    } catch (err: any) {
-      toast.add({ type: "error", description: err.message || "Gagal menghapus libur" })
     }
   }
 
@@ -878,496 +690,44 @@ export default function CalendarPage() {
         </div>
 
         {/* ── Sidebar (responsive) ─────────────────────────── */}
-        <div className="flex flex-col gap-4 w-full xl:w-72 shrink-0">
-          {/* Selected Date Agenda / Daily Overview */}
-          <div className="rounded-2xl border border-border/50 bg-card shadow-xs p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold flex items-center gap-1.5">
-                <HugeiconsIcon icon={Calendar02Icon} className="h-4 w-4 text-primary" />
-                Agenda: {selectedDate.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
-              </h3>
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-6 w-6"
-                onClick={() => openAddSheet(selectedDate)}
-                title="Add task for this day"
-              >
-                <HugeiconsIcon icon={Add01Icon} className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-
-            {/* Holiday Notice */}
-            {(() => {
-              const ds = toDateStr(selectedDate);
-              const holiday = holidays.find((h: any) => h.date === ds);
-              const customHoliday = customHolidays.find((ch: any) => {
-                return ds >= ch.startDate && ds <= ch.endDate
-              });
-
-              if (holiday) {
-                return (
-                  <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-500 text-xs font-semibold flex items-start gap-1.5 animate-in fade-in duration-200">
-                    <HugeiconsIcon icon={Calendar02Icon} className="h-4 w-4 shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-bold">Hari Libur</p>
-                      <p className="text-[11px] font-normal leading-normal">{holiday.description}</p>
-                    </div>
-                  </div>
-                );
-              }
-
-              if (customHoliday) {
-                return (
-                  <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-semibold flex items-start gap-1.5 animate-in fade-in duration-200">
-                    <HugeiconsIcon icon={Location01Icon} className="h-4 w-4 shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-bold">Libur Kampus</p>
-                      <p className="text-[11px] font-normal leading-normal">{customHoliday.name}</p>
-                    </div>
-                  </div>
-                );
-              }
-              return null;
-            })()}
-
-            {/* Items list */}
-            {(() => {
-              const items = getItems(selectedDate);
-              if (items.length === 0) {
-                return (
-                  <p className="text-xs text-muted-foreground text-center py-4">Tidak ada agenda hari ini</p>
-                );
-              }
-
-              return (
-                <div className="space-y-2 max-h-[250px] overflow-y-auto pr-1">
-                  {items.map((item) => {
-                    const isTask = item.type === "task";
-                    if (!isTask) {
-                      const c = COURSE_COLORS[courseColorMap[item.courseId] ?? 0];
-                      return (
-                        <div
-                          key={item.id}
-                          onClick={() => {
-                            setSelectedSchedule(item)
-                            setExcType(item.exception?.type ?? "CANCELLED")
-                            setExcNewStartTime(item.exception?.newStartTime ?? item.time)
-                            setExcNewEndTime(item.exception?.newEndTime ?? item.endTime ?? "")
-                            setExcNewRoom(item.exception?.newRoom ?? item.room ?? "")
-                            setExcNewLink(item.exception?.newLink ?? item.link ?? "")
-                            setExcNote(item.exception?.note ?? "")
-                            setExceptionSheetOpen(true)
-                          }}
-                          className={`flex flex-col gap-1 rounded-xl p-2.5 text-xs font-semibold border transition-all cursor-pointer hover:ring-[1.5px] hover:ring-primary/40
-                            ${item.isHoliday 
-                              ? "bg-muted text-muted-foreground/50 border-muted-foreground/10 opacity-50" 
-                              : `${c.bg} ${c.text} ${c.border}`
-                            }`}
-                        >
-                          <div className="flex items-center gap-2">
-                            <HugeiconsIcon icon={Clock01Icon} className="h-3.5 w-3.5 shrink-0 opacity-70" />
-                            <div className="flex-1 min-w-0">
-                              <p className={`truncate font-bold ${item.isCancelled ? 'line-through opacity-60' : ''}`}>
-                                {item.exception?.type === 'CANCELLED' && '[Batal] '}
-                                {item.exception?.type === 'MOVED' && '[Pindah] '}
-                                {item.title}
-                              </p>
-                              <p className="text-[10px] opacity-70 flex items-center gap-1 flex-wrap">
-                                <span>{item.time} WIB</span>
-                                {item.isCancelled && <span>(Batal)</span>} 
-                                {item.isHoliday && !item.isCancelled && <span>(Libur)</span>}
-                                {item.room && (
-                                  <span className="flex items-center gap-0.5">
-                                    <span>·</span>
-                                    <HugeiconsIcon icon={Location01Icon} className="h-3 w-3 shrink-0 opacity-70" />
-                                    <span>{item.room}</span>
-                                  </span>
-                                )}
-                              </p>
-                            </div>
-                          </div>
-                          {item.exception?.note && (
-                            <p className="text-[9.5px] text-rose-500 font-normal mt-0.5 border-t border-dashed border-rose-500/20 pt-1 flex items-center gap-1">
-                              <HugeiconsIcon icon={File01Icon} className="h-3 w-3 shrink-0" />
-                              <span>Catatan: {item.exception.note}</span>
-                            </p>
-                          )}
-                          {item.link && (
-                            <a href={item.link} target="_blank" rel="noopener noreferrer" className="text-[9.5px] text-blue-500 hover:underline mt-0.5 flex items-center gap-1 font-normal">
-                              <HugeiconsIcon icon={Link01Icon} className="h-3 w-3 shrink-0" />
-                              <span>Link Kelas</span>
-                            </a>
-                          )}
-                        </div>
-                      );
-                    }
-
-                    const isDone = item.status === "DONE";
-                    const isHigh = item.priority === "HIGH";
-                    return (
-                      <div
-                        key={item.id}
-                        onClick={() => openEditSheet(item.raw)}
-                        className={`flex items-start justify-between gap-2 rounded-xl p-2.5 text-xs font-semibold border cursor-pointer transition-all
-                          ${isDone
-                            ? "bg-muted/40 text-muted-foreground line-through border-muted-foreground/15"
-                            : isHigh
-                            ? "bg-destructive/10 text-destructive border-destructive/20 hover:bg-destructive/15"
-                            : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-400/20 hover:bg-amber-500/15"
-                          }`}
-                      >
-                        <div className="flex-1 min-w-0">
-                          <p className="truncate font-bold">{item.title}</p>
-                          {item.raw.description && (
-                            <p className="text-[10px] opacity-70 truncate mt-0.5">{item.raw.description}</p>
-                          )}
-                        </div>
-                        <Badge variant={isHigh ? "destructive" : "outline"} className="text-[9px] font-bold uppercase shrink-0">
-                          {item.priority}
-                        </Badge>
-                      </div>
-                    );
-                  })}
-                </div>
-              );
-            })()}
-          </div>
-
-          {/* Stats */}
-          <div className="rounded-2xl border border-border/50 bg-card shadow-xs p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold">Task Overview</h3>
-            </div>
-            {/* Scope Toggle */}
-            <div className="flex items-center gap-0.5 bg-muted/50 rounded-lg p-0.5 border border-border/40">
-              {(["month", "semester", "all"] as const).map((scope) => (
-                <button
-                  key={scope}
-                  onClick={() => setOverviewScope(scope)}
-                  className={`flex-1 text-[10px] font-bold py-1.5 rounded-md transition-all capitalize
-                    ${overviewScope === scope
-                      ? "bg-card text-foreground shadow-xs border border-border/40"
-                      : "text-muted-foreground hover:text-foreground"}`}
-                >
-                  {scope === "month" ? MONTHS[month].slice(0,3) : scope === "semester" ? "Sem." : "All"}
-                </button>
-              ))}
-            </div>
-
-            {/* Completion Rate Ring + Big Numbers */}
-            {(() => {
-              const total = pendingCount + completedCount
-              const pct = total === 0 ? 0 : Math.round((completedCount / total) * 100)
-              const highPriority = filteredTasksForOverview.filter(t => t.priority === "HIGH" && t.status !== "DONE").length
-              return (
-                <div className="space-y-3">
-                  {/* Progress bar */}
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between text-[10px] font-semibold text-muted-foreground">
-                      <span>Completion</span>
-                      <span className="text-foreground font-bold">{pct}%</span>
-                    </div>
-                    <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-emerald-500 transition-all duration-500"
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* 3 stat tiles */}
-                  <div className="grid grid-cols-3 gap-2">
-                    <div className="rounded-xl bg-amber-500/10 border border-amber-400/20 p-2.5 flex flex-col gap-0.5 items-center text-center">
-                      <span className="text-lg font-black text-amber-600 dark:text-amber-400 leading-none">{pendingCount}</span>
-                      <span className="text-[9px] font-semibold text-muted-foreground">Pending</span>
-                    </div>
-                    <div className="rounded-xl bg-emerald-500/10 border border-emerald-400/20 p-2.5 flex flex-col gap-0.5 items-center text-center">
-                      <span className="text-lg font-black text-emerald-600 dark:text-emerald-400 leading-none">{completedCount}</span>
-                      <span className="text-[9px] font-semibold text-muted-foreground">Done</span>
-                    </div>
-                    <div className="rounded-xl bg-destructive/10 border border-destructive/20 p-2.5 flex flex-col gap-0.5 items-center text-center">
-                      <span className="text-lg font-black text-destructive leading-none">{highPriority}</span>
-                      <span className="text-[9px] font-semibold text-muted-foreground">Urgent</span>
-                    </div>
-                  </div>
-                </div>
-              )
-            })()}
-          </div>
-
-          {/* Upcoming */}
-          <div className="rounded-2xl border border-border/50 bg-card shadow-xs p-4 space-y-3">
-            <h3 className="text-sm font-bold">Upcoming Deadlines</h3>
-            {upcomingTasks.length === 0 ? (
-              <p className="text-xs text-muted-foreground text-center py-4">Tidak ada tugas mendatang</p>
-            ) : (
-              <div className="space-y-2">
-                {upcomingTasks.map((t) => {
-                  const d = new Date(t.deadline)
-                  const isHigh = t.priority === "HIGH"
-                  return (
-                    <div key={t.id}
-                      className={`rounded-lg border p-2.5 space-y-1 cursor-pointer transition-colors
-                        ${isHigh ? "bg-destructive/5 border-destructive/20 hover:bg-destructive/10" : "bg-muted/20 border-border/40 hover:bg-muted/40"}`}
-                      onClick={() => openEditSheet(t)}
-                    >
-                      <div className="flex justify-between items-start gap-2">
-                        <span className="text-xs font-semibold text-foreground line-clamp-2 flex-1">{t.title}</span>
-                        <Badge variant={isHigh ? "destructive" : "outline"} className="text-[9px] font-bold uppercase shrink-0">{t.priority}</Badge>
-                      </div>
-                      <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                        <HugeiconsIcon icon={Calendar02Icon} className="h-3 w-3 text-primary/60" />
-                        <span>{d.toLocaleDateString("id-ID",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</span>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-            <Button size="sm" className="w-full h-8 text-xs gap-1.5" variant="outline" onClick={() => openAddSheet()}>
-              <HugeiconsIcon icon={Add01Icon} className="h-3.5 w-3.5" />
-              Add New Task
-            </Button>
-          </div>
-
-          {/* Legend */}
-          <div className="rounded-2xl border border-border/50 bg-card shadow-xs p-4 space-y-2">
-            <h3 className="text-sm font-bold">Legend & Tips</h3>
-            <div className="space-y-1.5 text-xs text-muted-foreground">
-              <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded bg-violet-500/60 shrink-0" />Class / Schedule (read-only)</div>
-              <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded bg-amber-400/80 shrink-0" />Task (normal priority)</div>
-              <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded bg-destructive/60 shrink-0" />Task (high priority)</div>
-              <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded bg-muted border shrink-0" />Completed task</div>
-            </div>
-            <div className="mt-3 rounded-lg bg-muted/30 border border-border/40 p-2.5 text-[10px] text-muted-foreground space-y-1">
-              <div>• <b>Drag</b> a task to another date to reschedule</div>
-              <div>• <b>Click</b> a date cell to add a new task</div>
-              <div>• <b>Click</b> a task to edit its details</div>
-              <div>• <b>Hover</b> a task for quick actions</div>
-            </div>
-          </div>
-        </div>
+        <AgendaSidebar
+          selectedDate={selectedDate}
+          holidays={holidays}
+          customHolidays={customHolidays}
+          pendingCount={pendingCount}
+          completedCount={completedCount}
+          upcomingTasks={upcomingTasks}
+          filteredTasksForOverview={filteredTasksForOverview}
+          overviewScope={overviewScope}
+          setOverviewScope={setOverviewScope}
+          month={month}
+          MONTHS={MONTHS}
+          openAddSheet={openAddSheet}
+          openEditSheet={openEditSheet}
+          courseColorMap={courseColorMap}
+          COURSE_COLORS={COURSE_COLORS}
+          getItems={getItems}
+          setSelectedSchedule={setSelectedSchedule}
+          setExcType={(type: any) => setExcType(type)}
+          setExcNewStartTime={setExcNewStartTime}
+          setExcNewEndTime={setExcNewEndTime}
+          setExcNewRoom={setExcNewRoom}
+          setExcNewLink={setExcNewLink}
+          setExcNote={setExcNote}
+          setExceptionSheetOpen={setExceptionSheetOpen}
+        />
       </div>
 
       {/* ── Task Sheet ────────────────────────────────────── */}
-      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent side="right" className="w-[400px] sm:w-[440px] overflow-y-auto font-sans flex flex-col">
-          <SheetHeader className="pb-4 border-b border-border/40">
-            <SheetTitle className="text-base">{editingTask ? "Edit Task" : "New Task"}</SheetTitle>
-            <SheetDescription className="text-xs">
-              {editingTask ? "Update your task details." : "Add a new task to your calendar."}
-            </SheetDescription>
-          </SheetHeader>
-
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4 pt-4 px-6 pb-6 flex-1">
-            <Field>
-              <FieldLabel className="text-xs font-semibold">Title *</FieldLabel>
-              <Input
-                value={fTitle}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFTitle(e.target.value)}
-                placeholder="e.g. Complete Assignment 3"
-                className="h-9 text-sm"
-                required
-              />
-            </Field>
-
-            <Field>
-              <FieldLabel className="text-xs font-semibold">Description</FieldLabel>
-              <Input
-                value={fDesc}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFDesc(e.target.value)}
-                placeholder="Optional notes…"
-                className="h-9 text-sm"
-              />
-            </Field>
-
-            <div className="grid grid-cols-2 gap-3">
-              <Field>
-                <FieldLabel className="text-xs font-semibold">Deadline *</FieldLabel>
-                <Input
-                  type="datetime-local"
-                  value={fDeadline}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFDeadline(e.target.value)}
-                  className="h-9 text-xs"
-                  required
-                />
-              </Field>
-              <Field>
-                <FieldLabel className="text-xs font-semibold">Priority</FieldLabel>
-                <Select value={fPriority} onValueChange={(v: string | null) => setFPriority(v ?? fPriority)}>
-                  <SelectTrigger className="w-full h-9">
-                    <span data-slot="select-value" className="text-sm">
-                      {fPriority.charAt(0) + fPriority.slice(1).toLowerCase()}
-                    </span>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectItem value="LOW">Low</SelectItem>
-                      <SelectItem value="MEDIUM">Medium</SelectItem>
-                      <SelectItem value="HIGH">High</SelectItem>
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </Field>
-            </div>
-
-            <Field>
-              <FieldLabel className="text-xs font-semibold">Course</FieldLabel>
-              <Select value={fCourseId} onValueChange={(v: string | null) => setFCourseId(v ?? fCourseId)}>
-                <SelectTrigger className="w-full h-9">
-                  <span data-slot="select-value" className="text-sm">
-                    {allCourses.find(c => c.id === fCourseId)?.name || "No specific course"}
-                  </span>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectItem value="none">No specific course</SelectItem>
-                    {allCourses.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </Field>
-
-            {editingTask && (
-              <Field>
-                <FieldLabel className="text-xs font-semibold">Status</FieldLabel>
-                <Select value={fStatus} onValueChange={(v: string | null) => setFStatus(v ?? fStatus)}>
-                  <SelectTrigger className="w-full h-9">
-                    <span data-slot="select-value" className="text-sm">{fStatus.replace("_"," ")}</span>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectItem value="PENDING">Pending</SelectItem>
-                      <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
-                      <SelectItem value="DONE">Done</SelectItem>
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </Field>
-             )}
-
-            <div className="flex items-center gap-2 mt-1">
-              <Checkbox
-                id="isGroupTask"
-                checked={fIsGroupTask}
-                onCheckedChange={(checked) => setFIsGroupTask(!!checked)}
-              />
-              <label htmlFor="isGroupTask" className="text-xs font-semibold select-none cursor-pointer">
-                Tugas Kelompok
-              </label>
-            </div>
-
-            {fIsGroupTask && (
-              <Field>
-                <FieldLabel className="text-xs font-semibold">Porsi Tugas Saya</FieldLabel>
-                <Input
-                  value={fMyPart}
-                  onChange={(e) => setFMyPart(e.target.value)}
-                  placeholder="e.g. Desain UI & frontend"
-                  className="h-9 text-sm"
-                />
-              </Field>
-            )}
-
-            <div className="grid grid-cols-2 gap-3">
-              <Field>
-                <FieldLabel className="text-xs font-semibold">Bobot Nilai (%)</FieldLabel>
-                <Input
-                  type="number"
-                  value={fWeight}
-                  onChange={(e) => setFWeight(e.target.value)}
-                  placeholder="e.g. 15"
-                  className="h-9 text-sm"
-                />
-              </Field>
-              <Field>
-                <FieldLabel className="text-xs font-semibold">Metode Pengumpulan</FieldLabel>
-                <Select value={fSubMethod} onValueChange={(v: string | null) => setFSubMethod(v ?? "OFFLINE")}>
-                  <SelectTrigger className="w-full h-9">
-                    <span data-slot="select-value" className="text-sm">{fSubMethod}</span>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectItem value="OFFLINE">Offline</SelectItem>
-                      <SelectItem value="GFORM">Google Form</SelectItem>
-                      <SelectItem value="EMAIL">Email</SelectItem>
-                      <SelectItem value="LMS">LMS Kampus</SelectItem>
-                      <SelectItem value="UPLOAD">Upload</SelectItem>
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </Field>
-            </div>
-
-            <Field>
-              <FieldLabel className="text-xs font-semibold">Link Pengumpulan</FieldLabel>
-              <Input
-                value={fSubLink}
-                onChange={(e) => setFSubLink(e.target.value)}
-                placeholder="e.g. https://lms.univ.ac.id/submit"
-                className="h-9 text-sm"
-              />
-            </Field>
-
-            {editingTask && (
-              <div className="border-t border-border/40 pt-4 flex flex-col gap-2">
-                <h4 className="text-xs font-bold text-foreground/75 uppercase tracking-wider">Sub-Todo Checklist</h4>
-                <div className="space-y-2">
-                  {checklistItems.map((item: any) => (
-                    <div key={item.id} className="flex items-center justify-between p-2 rounded-xl border bg-card text-xs">
-                      <div className="flex items-center gap-2">
-                        <Checkbox
-                          checked={item.isCompleted}
-                          onCheckedChange={(checked) => handleToggleCheckItem(item.id, !!checked)}
-                        />
-                        <span className={item.isCompleted ? "line-through text-muted-foreground" : ""}>{item.title}</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteCheckItem(item.id)}
-                        className="text-muted-foreground hover:text-destructive p-1"
-                      >
-                        <HugeiconsIcon icon={Delete02Icon} className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-                <div className="flex items-center gap-2 mt-1">
-                  <input
-                    value={newCheckTitle}
-                    onChange={(e) => setNewCheckTitle(e.target.value)}
-                    placeholder="Tambah checklist baru..."
-                    className="h-8 text-xs border rounded-xl px-2.5 bg-background flex-1 focus-visible:outline-none"
-                  />
-                  <Button type="button" size="sm" className="h-8 text-xs" onClick={handleAddCheckItem}>
-                    Tambah
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            <div className="flex gap-2 mt-2 pt-4 border-t border-border/40">
-              <Button type="submit" className="flex-1 h-9 text-sm" disabled={formLoading}>
-                {formLoading ? "Saving…" : editingTask ? "Update Task" : "Add to Calendar"}
-              </Button>
-              {editingTask && (
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="icon"
-                  className="h-9 w-9 shrink-0"
-                  onClick={() => { setDeleteId(editingTask.id); setSheetOpen(false); setConfirmOpen(true) }}
-                >
-                  <HugeiconsIcon icon={Delete02Icon} className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
-          </form>
-        </SheetContent>
-      </Sheet>
+      <CalendarEventSheet
+        isOpen={sheetOpen}
+        onClose={setSheetOpen}
+        editingTask={editingTask}
+        prefillDate={prefillDate}
+        allCourses={allCourses}
+        onSaveSuccess={fetchData}
+        onDeleteRequest={handleDeleteRequest}
+      />
 
       {/* ── Confirm Delete ────────────────────────────────── */}
       <ConfirmDialog
@@ -1379,105 +739,14 @@ export default function CalendarPage() {
       />
 
       {/* ── Custom Holiday Sheet ─────────────────────────── */}
-      <Sheet open={holidaySheetOpen} onOpenChange={setHolidaySheetOpen}>
-        <SheetContent side="right" className="w-[400px] sm:w-[440px] overflow-y-auto font-sans flex flex-col">
-          <SheetHeader className="pb-4 border-b border-border/40">
-            <SheetTitle className="text-base">Atur Libur Kampus</SheetTitle>
-            <SheetDescription className="text-xs">
-              Tambahkan libur kampus kustom berjangka waktu.
-            </SheetDescription>
-          </SheetHeader>
+      <HolidaySheet
+        isOpen={holidaySheetOpen}
+        onClose={setHolidaySheetOpen}
+        customHolidays={customHolidays}
+        userProfile={userProfile}
+        onSaveSuccess={fetchData}
+      />
 
-          {/* Form to add custom holiday */}
-          <form onSubmit={handleHolidaySubmit} className="flex flex-col gap-4 pt-4 px-6 pb-4 border-b border-border/40">
-            <Field>
-              <FieldLabel className="text-xs font-semibold">Nama Hari Libur *</FieldLabel>
-              <Input
-                value={hName}
-                onChange={(e: any) => setHName(e.target.value)}
-                placeholder="e.g. Libur Semester, Libur Lebaran"
-                className="h-9 text-sm"
-                required
-              />
-            </Field>
-            <div className="grid grid-cols-2 gap-3">
-              <Field className="flex flex-col">
-                <FieldLabel className="text-xs font-semibold mb-1">Mulai Tanggal *</FieldLabel>
-                <Popover>
-                  <PopoverTrigger
-                    render={
-                      <Button variant="outline" className="h-9 w-full justify-start text-left font-normal text-xs px-3">
-                        <HugeiconsIcon icon={Calendar02Icon} className="mr-2 h-3.5 w-3.5 shrink-0 opacity-60" />
-                        {hStart ? format(new Date(hStart), "dd MMM yyyy") : <span>Pilih Tanggal</span>}
-                      </Button>
-                    }
-                  />
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={hStart ? new Date(hStart) : undefined}
-                      onSelect={(date) => setHStart(date ? toDateStr(date) : "")}
-                    />
-                  </PopoverContent>
-                </Popover>
-              </Field>
-              <Field className="flex flex-col">
-                <FieldLabel className="text-xs font-semibold mb-1">Sampai Tanggal *</FieldLabel>
-                <Popover>
-                  <PopoverTrigger
-                    render={
-                      <Button variant="outline" className="h-9 w-full justify-start text-left font-normal text-xs px-3">
-                        <HugeiconsIcon icon={Calendar02Icon} className="mr-2 h-3.5 w-3.5 shrink-0 opacity-60" />
-                        {hEnd ? format(new Date(hEnd), "dd MMM yyyy") : <span>Pilih Tanggal</span>}
-                      </Button>
-                    }
-                  />
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={hEnd ? new Date(hEnd) : undefined}
-                      onSelect={(date) => setHEnd(date ? toDateStr(date) : "")}
-                    />
-                  </PopoverContent>
-                </Popover>
-              </Field>
-            </div>
-            <Button type="submit" className="w-full h-9 text-sm" disabled={hLoading}>
-              {hLoading ? "Menyimpan…" : "Tambah Hari Libur"}
-            </Button>
-          </form>
-
-          {/* List of custom holidays */}
-          <div className="flex-1 p-6 flex flex-col gap-3">
-            <h4 className="text-xs font-bold text-foreground/70 uppercase tracking-wider">Daftar Libur Anda</h4>
-            {customHolidays.length === 0 ? (
-              <p className="text-xs text-muted-foreground text-center py-6">Belum ada hari libur kustom.</p>
-            ) : (
-              <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
-                {customHolidays.map((ch: any) => (
-                  <div key={ch.id} className="flex items-center justify-between p-2.5 rounded-xl border bg-card text-xs">
-                    <div className="min-w-0">
-                      <p className="font-bold text-amber-600 dark:text-amber-400 truncate">{ch.name}</p>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">
-                        {new Date(ch.startDate).toLocaleDateString("id-ID", { day: "numeric", month: "short", timeZone: "UTC" })} - {new Date(ch.endDate).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" })}
-                      </p>
-                    </div>
-                    {userProfile?.id === ch.userId && (
-                      <button
-                        onClick={() => handleHolidayDelete(ch.id)}
-                        className="text-muted-foreground hover:text-destructive cursor-pointer p-1 animate-in fade-in"
-                        title="Hapus"
-                      >
-                        <HugeiconsIcon icon={Delete02Icon} className="h-4 w-4" />
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </SheetContent>
-      </Sheet>
 
       {/* ── Schedule Exception Sheet ──────────────────────── */}
       <Sheet open={exceptionSheetOpen} onOpenChange={setExceptionSheetOpen}>

@@ -11,8 +11,6 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Field, FieldLabel } from "@/components/ui/field"
 import {
   Table,
   TableBody,
@@ -29,13 +27,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { 
   Delete02Icon, 
@@ -49,6 +40,7 @@ import {
 } from "@hugeicons/core-free-icons"
 import { toast } from "@/components/ui/toast"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
+import { CourseSheet } from "./components/course-sheet"
 
 function getCookie(name: string) {
   if (typeof document === "undefined") return undefined
@@ -65,13 +57,6 @@ export default function CoursesPage() {
   const [courses, setCourses] = React.useState<any[]>([])
   const [loading, setLoading] = React.useState(true)
   const [coursesLoading, setCoursesLoading] = React.useState(false)
-
-  // Form states
-  const [code, setCode] = React.useState("")
-  const [name, setName] = React.useState("")
-  const [credits, setCredits] = React.useState("3")
-  const [lecturer, setLecturer] = React.useState("")
-  const [formLoading, setFormLoading] = React.useState(false)
 
   // Sheet State
   const [sheetOpen, setSheetOpen] = React.useState(false)
@@ -163,79 +148,17 @@ export default function CoursesPage() {
     fetchCourses(selectedSemesterId)
   }, [selectedSemesterId, fetchCourses])
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!selectedSemesterId) {
-      toast.add({ type: "error", description: "Please select a semester first" })
-      return
-    }
-
-    setFormLoading(true)
-    const token = getCookie("token")
-    if (!token) return
-
-    try {
-      const url = editingCourseId
-        ? `${API_URL}/api/semesters/${selectedSemesterId}/courses/${editingCourseId}`
-        : `${API_URL}/api/semesters/${selectedSemesterId}/courses`
-      const method = editingCourseId ? "PUT" : "POST"
-
-      const res = await fetch(url, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          code,
-          name,
-          credits: parseInt(credits, 10),
-          lecturer: lecturer || undefined,
-        }),
-      })
-
-      if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.message || "Failed to save course")
-      }
-
-      setCode("")
-      setName("")
-      setCredits("3")
-      setLecturer("")
-      setEditingCourseId(null)
-      setSheetOpen(false)
-      toast.add({ 
-        type: "success", 
-        description: editingCourseId ? "Course updated successfully" : "Course added successfully" 
-      })
-      fetchCourses(selectedSemesterId)
-    } catch (err: any) {
-      toast.add({ type: "error", description: err.message || "Failed to save course" })
-    } finally {
-      setFormLoading(false)
-    }
-  }
-
   const handleAddClick = () => {
     if (!selectedSemesterId) {
       toast.add({ type: "warning", description: "Please select a semester first" })
       return
     }
     setEditingCourseId(null)
-    setCode("")
-    setName("")
-    setCredits("3")
-    setLecturer("")
     setSheetOpen(true)
   }
 
   const handleEditClick = (course: any) => {
     setEditingCourseId(course.id)
-    setCode(course.code)
-    setName(course.name)
-    setCredits(course.credits.toString())
-    setLecturer(course.lecturer || "")
     setSheetOpen(true)
   }
 
@@ -455,76 +378,13 @@ export default function CoursesPage() {
       </div>
 
       {/* Side Sheet Form for Add/Edit */}
-      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent className="sm:max-w-md">
-          <SheetHeader>
-            <SheetTitle>
-              {editingCourseId ? "Edit Course" : "Add Course"}
-            </SheetTitle>
-            <SheetDescription>
-              {editingCourseId 
-                ? "Update the details for the selected course." 
-                : "Create a new course under the current semester."}
-            </SheetDescription>
-          </SheetHeader>
-          <div className="px-6 py-4">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <Field>
-                <FieldLabel htmlFor="course-code">Course Code</FieldLabel>
-                <Input
-                  id="course-code"
-                  type="text"
-                  placeholder="e.g. SNR301 (Optional - auto-generated)"
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                />
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="course-name">Course Name</FieldLabel>
-                <Input
-                  id="course-name"
-                  type="text"
-                  placeholder="e.g. Manajemen Jaringan"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                />
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="course-credits">Credit Hours (SKS)</FieldLabel>
-                <Input
-                  id="course-credits"
-                  type="number"
-                  min="1"
-                  max="6"
-                  value={credits}
-                  onChange={(e) => setCredits(e.target.value)}
-                  required
-                />
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="course-lecturer">Lecturer Name</FieldLabel>
-                <Input
-                  id="course-lecturer"
-                  type="text"
-                  placeholder="e.g. Dr. Ahmad (Optional)"
-                  value={lecturer}
-                  onChange={(e) => setLecturer(e.target.value)}
-                />
-              </Field>
-              <div className="flex gap-3 pt-4">
-                <Button type="button" variant="outline" className="w-1/2" onClick={() => setSheetOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit" className="w-1/2" disabled={formLoading || !selectedSemesterId}>
-                  <HugeiconsIcon icon={editingCourseId ? PencilEdit01Icon : Add01Icon} strokeWidth={2} className="mr-2 h-4 w-4" />
-                  {formLoading ? "Saving..." : editingCourseId ? "Save" : "Add"}
-                </Button>
-              </div>
-            </form>
-          </div>
-        </SheetContent>
-      </Sheet>
+      <CourseSheet
+        isOpen={sheetOpen}
+        onClose={setSheetOpen}
+        selectedSemesterId={selectedSemesterId}
+        editingCourseId={editingCourseId}
+        onSaveSuccess={() => fetchCourses(selectedSemesterId)}
+      />
 
       <ConfirmDialog
         isOpen={confirmOpen}

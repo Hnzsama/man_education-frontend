@@ -11,8 +11,6 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Field, FieldLabel } from "@/components/ui/field"
 import { Badge } from "@/components/ui/badge"
 import {
   Select,
@@ -22,13 +20,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { 
   Delete02Icon, 
@@ -42,6 +33,8 @@ import {
 } from "@hugeicons/core-free-icons"
 import { toast } from "@/components/ui/toast"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
+import { ScheduleSheet } from "./components/schedule-sheet"
+import { AIScheduleSheet } from "./components/ai-schedule-sheet"
 
 function getCookie(name: string) {
   if (typeof document === "undefined") return undefined
@@ -74,25 +67,18 @@ export default function SchedulesPage() {
   })
   const [loading, setLoading] = React.useState(true)
 
-  // Form states
-  const [selectedCourseId, setSelectedCourseId] = React.useState("")
-  const [dayOfWeek, setDayOfWeek] = React.useState("1")
-  const [startTime, setStartTime] = React.useState("08:00")
-  const [endTime, setEndTime] = React.useState("10:00")
-  const [room, setRoom] = React.useState("")
-  const [link, setLink] = React.useState("")
-  const [formLoading, setFormLoading] = React.useState(false)
-
   // Sheet State
   const [sheetOpen, setSheetOpen] = React.useState(false)
   const [editingScheduleId, setEditingScheduleId] = React.useState<string | null>(null)
-  // Store the course ID of the editing schedule to construct the PUT/DELETE URLs
   const [editingCourseId, setEditingCourseId] = React.useState<string | null>(null)
 
   // Confirmation Modal State
   const [confirmOpen, setConfirmOpen] = React.useState(false)
   const [idToDelete, setIdToDelete] = React.useState<string | null>(null)
   const [courseIdToDelete, setCourseIdToDelete] = React.useState<string | null>(null)
+
+  // AI sheet state
+  const [aiSheetOpen, setAiSheetOpen] = React.useState(false)
 
   // Filter visible days
   const visibleDays = React.useMemo(() => {
@@ -192,169 +178,6 @@ export default function SchedulesPage() {
     fetchAllData(selectedSemesterId)
   }, [selectedSemesterId, fetchAllData])
 
-  // AI Generate States
-  const [aiSheetOpen, setAiSheetOpen] = React.useState(false)
-  const [aiImage, setAiImage] = React.useState("")
-  const [aiCommand, setAiCommand] = React.useState("")
-  const [aiLoading, setAiLoading] = React.useState(false)
-
-  const convertToWebP = (file: File): Promise<string> => {
-    return new Promise((resolve) => {
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        const img = new Image()
-        img.onload = () => {
-          const canvas = document.createElement("canvas")
-          let width = img.width
-          let height = img.height
-          
-          const MAX_SIZE = 1600
-          if (width > MAX_SIZE || height > MAX_SIZE) {
-            if (width > height) {
-              height = Math.round((height * MAX_SIZE) / width)
-              width = MAX_SIZE
-            } else {
-              width = Math.round((width * MAX_SIZE) / height)
-              height = MAX_SIZE
-            }
-          }
-          
-          canvas.width = width
-          canvas.height = height
-          
-          const ctx = canvas.getContext("2d")
-          if (ctx) {
-            ctx.drawImage(img, 0, 0, width, height)
-            const webpDataUrl = canvas.toDataURL("image/webp", 0.8)
-            resolve(webpDataUrl)
-          } else {
-            resolve(e.target?.result as string)
-          }
-        }
-        img.src = e.target?.result as string
-      }
-      reader.readAsDataURL(file)
-    })
-  }
-
-  const handleAIImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      try {
-        const webpDataUrl = await convertToWebP(file)
-        setAiImage(webpDataUrl)
-      } catch (err) {
-        const reader = new FileReader()
-        reader.onloadend = () => {
-          setAiImage(reader.result as string)
-        }
-        reader.readAsDataURL(file)
-      }
-    }
-  }
-
-  const handleAIGenerate = async () => {
-    if (!aiImage && !aiCommand) return
-    setAiLoading(true)
-
-    const token = getCookie("token")
-    if (!token) return
-
-    try {
-      const res = await fetch(`${API_URL}/api/semesters/${selectedSemesterId}/schedules/ai-generate`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          image: aiImage,
-          command: aiCommand,
-        }),
-      })
-
-      if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.message || "Failed to generate schedules")
-      }
-
-      const generated = await res.json()
-      toast.add({
-        type: "success",
-        description: `Successfully generated ${generated.length} class schedules!`,
-      })
-      
-      setAiImage("")
-      setAiCommand("")
-      setAiSheetOpen(false)
-      
-      fetchAllData(selectedSemesterId)
-    } catch (err: any) {
-      toast.add({ type: "error", description: err.message || "Failed to generate schedules" })
-    } finally {
-      setAiLoading(false)
-    }
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    const targetCourseId = editingScheduleId ? editingCourseId : selectedCourseId
-    if (!targetCourseId) {
-      toast.add({ type: "error", description: "Please select a course first" })
-      return
-    }
-
-    setFormLoading(true)
-    const token = getCookie("token")
-    if (!token) return
-
-    try {
-      const url = editingScheduleId
-        ? `${API_URL}/api/courses/${targetCourseId}/schedules/${editingScheduleId}`
-        : `${API_URL}/api/courses/${targetCourseId}/schedules`
-      const method = editingScheduleId ? "PUT" : "POST"
-
-      const res = await fetch(url, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          dayOfWeek: parseInt(dayOfWeek, 10),
-          startTime,
-          endTime,
-          room: room || undefined,
-          link: link || undefined,
-        }),
-      })
-
-      if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.message || "Failed to save schedule")
-      }
-
-      setSelectedCourseId("")
-      setDayOfWeek("1")
-      setStartTime("08:00")
-      setEndTime("10:00")
-      setRoom("")
-      setLink("")
-      setEditingScheduleId(null)
-      setEditingCourseId(null)
-      setSheetOpen(false)
-      toast.add({ 
-        type: "success", 
-        description: editingScheduleId ? "Schedule updated successfully" : "Schedule added successfully" 
-      })
-      fetchAllData(selectedSemesterId)
-    } catch (err: any) {
-      toast.add({ type: "error", description: err.message || "Failed to save schedule" })
-    } finally {
-      setFormLoading(false)
-    }
-  }
-
   const handleAddClick = () => {
     if (courses.length === 0) {
       toast.add({ type: "warning", description: "Please add a course first before scheduling" })
@@ -362,24 +185,12 @@ export default function SchedulesPage() {
     }
     setEditingScheduleId(null)
     setEditingCourseId(null)
-    setSelectedCourseId(courses[0].id)
-    setDayOfWeek("1")
-    setStartTime("08:00")
-    setEndTime("10:00")
-    setRoom("")
-    setLink("")
     setSheetOpen(true)
   }
 
   const handleEditClick = (sched: any) => {
     setEditingScheduleId(sched.id)
     setEditingCourseId(sched.courseId)
-    setSelectedCourseId(sched.courseId)
-    setDayOfWeek(sched.dayOfWeek.toString())
-    setStartTime(sched.startTime)
-    setEndTime(sched.endTime)
-    setRoom(sched.room || "")
-    setLink(sched.link || "")
     setSheetOpen(true)
   }
 
@@ -620,178 +431,22 @@ export default function SchedulesPage() {
       </div>
 
       {/* Side Sheet Form for Add/Edit */}
-      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent className="sm:max-w-md">
-          <SheetHeader>
-            <SheetTitle>
-              {editingScheduleId ? "Edit Schedule" : "Add Schedule"}
-            </SheetTitle>
-            <SheetDescription>
-              {editingScheduleId 
-                ? "Update the details for the selected schedule." 
-                : "Create a new schedule block for a course."}
-            </SheetDescription>
-          </SheetHeader>
-          <div className="px-6 py-4">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {!editingScheduleId && (
-                <Field>
-                  <FieldLabel>Select Course</FieldLabel>
-                  <Select
-                    value={selectedCourseId}
-                    onValueChange={(value) => setSelectedCourseId(value || "")}
-                  >
-                    <SelectTrigger className="w-full">
-                      <span data-slot="select-value">
-                        {courses.find((c) => c.id === selectedCourseId)?.name || "Choose a course"}
-                      </span>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        {courses.map((c) => (
-                          <SelectItem key={c.id} value={c.id}>
-                            {c.name} ({c.code})
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                </Field>
-              )}
-              <Field>
-                <FieldLabel>Day of Week</FieldLabel>
-                <Select
-                  value={dayOfWeek}
-                   onValueChange={(value) => setDayOfWeek(value || "1")}
-                >
-                  <SelectTrigger className="w-full">
-                    <span data-slot="select-value">
-                      {DAYS_OF_WEEK.find((d) => d.value.toString() === dayOfWeek)?.label || "Choose a day"}
-                    </span>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      {DAYS_OF_WEEK.map((d) => (
-                        <SelectItem key={d.value} value={d.value.toString()}>
-                          {d.label}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </Field>
-              <div className="grid grid-cols-2 gap-4">
-                <Field>
-                  <FieldLabel htmlFor="start-time">Start Time</FieldLabel>
-                  <Input
-                    id="start-time"
-                    type="time"
-                    value={startTime}
-                    onChange={(e) => setStartTime(e.target.value)}
-                    required
-                  />
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="end-time">End Time</FieldLabel>
-                  <Input
-                    id="end-time"
-                    type="time"
-                    value={endTime}
-                    onChange={(e) => setEndTime(e.target.value)}
-                    required
-                  />
-                </Field>
-              </div>
-              <Field>
-                <FieldLabel htmlFor="room">Room (optional)</FieldLabel>
-                <Input
-                  id="room"
-                  type="text"
-                  placeholder="e.g. Lab 3, Room 402"
-                  value={room}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRoom(e.target.value)}
-                />
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="class-link">Online Class Link (optional)</FieldLabel>
-                <Input
-                  id="class-link"
-                  type="url"
-                  placeholder="e.g. https://zoom.us/j/123456"
-                  value={link}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLink(e.target.value)}
-                />
-              </Field>
-              <div className="flex gap-3 pt-4">
-                <Button type="button" variant="outline" className="w-1/2" onClick={() => setSheetOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit" className="w-1/2" disabled={formLoading}>
-                  <HugeiconsIcon icon={editingScheduleId ? PencilEdit01Icon : Add01Icon} strokeWidth={2} className="mr-2 h-4 w-4" />
-                  {formLoading ? "Saving..." : editingScheduleId ? "Save" : "Add"}
-                </Button>
-              </div>
-            </form>
-          </div>
-        </SheetContent>
-      </Sheet>
+      <ScheduleSheet
+        isOpen={sheetOpen}
+        onClose={setSheetOpen}
+        selectedSemesterId={selectedSemesterId}
+        editingScheduleId={editingScheduleId}
+        editingCourseId={editingCourseId}
+        courses={courses}
+        onSaveSuccess={() => fetchAllData(selectedSemesterId)}
+      />
 
-      <Sheet open={aiSheetOpen} onOpenChange={setAiSheetOpen}>
-        <SheetContent className="sm:max-w-[440px] font-sans overflow-y-auto">
-          <SheetHeader className="pb-6">
-            <SheetTitle className="text-xl font-bold">AI Schedule Generator</SheetTitle>
-            <SheetDescription>
-              Upload a screenshot of your class schedule or type manual commands. Gemini will automatically match the schedules with your courses.
-            </SheetDescription>
-          </SheetHeader>
-          <div className="space-y-6 px-6 py-4">
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-semibold text-foreground">Upload Screenshot (Image)</label>
-              <div className="flex flex-col items-center justify-center border border-dashed border-border rounded-xl p-6 bg-muted/10 hover:bg-muted/20 transition-colors relative group min-h-[140px]">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleAIImageChange}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                />
-                {aiImage ? (
-                  <div className="flex flex-col items-center gap-2">
-                    <img src={aiImage} alt="Preview" className="max-h-40 rounded-lg object-contain shadow" />
-                    <span className="text-xs text-primary font-medium hover:underline">Change image</span>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8 text-muted-foreground">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" />
-                    </svg>
-                    <span className="text-xs font-semibold text-muted-foreground text-center">Click or Drag Image to Upload</span>
-                  </div>
-                )}
-              </div>
-            </div>
- 
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-semibold text-foreground">Additional Commands / Text Instructions (Optional)</label>
-              <textarea
-                placeholder="e.g. Hanya tambahkan jadwal untuk hari Senin dan Selasa saja..."
-                value={aiCommand}
-                onChange={(e) => setAiCommand(e.target.value)}
-                className="w-full min-h-[90px] rounded-xl border border-input bg-input/30 p-3 text-sm transition-colors outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 placeholder:text-muted-foreground resize-none font-sans"
-              />
-            </div>
- 
-            <div className="flex gap-3 pt-4">
-              <Button type="button" variant="outline" className="w-1/2" onClick={() => setAiSheetOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleAIGenerate} className="w-1/2" disabled={aiLoading || (!aiImage && !aiCommand)}>
-                {aiLoading ? "Generating..." : "Generate"}
-              </Button>
-            </div>
-          </div>
-        </SheetContent>
-      </Sheet>
+      <AIScheduleSheet
+        isOpen={aiSheetOpen}
+        onClose={setAiSheetOpen}
+        selectedSemesterId={selectedSemesterId}
+        onSaveSuccess={() => fetchAllData(selectedSemesterId)}
+      />
 
       <ConfirmDialog
         isOpen={confirmOpen}

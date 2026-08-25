@@ -50,12 +50,13 @@ export function NavMain({
         <SidebarMenu>
           {items.map((item) => {
             const isActive = pathname === item.url
+            const isExternal = item.url.startsWith("http://") || item.url.startsWith("https://")
             return (
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton 
                   tooltip={item.title} 
                   isActive={isActive}
-                  render={<Link href={item.url} />}
+                  render={isExternal ? <a href={item.url} target="_blank" rel="noopener noreferrer" /> : <Link href={item.url} />}
                 >
                   {item.icon}
                   <span>{item.title}</span>
