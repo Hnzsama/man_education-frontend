@@ -670,50 +670,57 @@ export default function CalendarPage() {
     <div className="flex flex-1 flex-col gap-6 py-4 md:py-6 px-4 lg:px-6 font-sans">
 
       {/* ── Topbar ─────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b pb-4 border-border/40">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Academic Calendar</h1>
           <p className="text-sm text-muted-foreground">
             Drag tasks to reschedule · Click a date to add · Click a task to edit.
           </p>
         </div>
-        <div className="flex items-center gap-2 self-end sm:self-auto flex-wrap">
-          <div className="flex items-center gap-1.5 border rounded-xl bg-card px-2.5 h-8 shadow-xs max-w-[280px] overflow-hidden">
-            <input
-              value={quickAddTaskText}
-              onChange={(e) => setQuickAddTaskText(e.target.value)}
-              placeholder="Quick Add: Tugas Statistika besok 8 malam"
-              className="border-0 bg-transparent h-full text-xs p-0 focus-visible:ring-0 focus-visible:outline-none min-w-[180px] w-full"
-            />
-            <button
-              onClick={handleQuickAddSubmit}
-              disabled={quickAddLoading}
-              className="h-6 w-6 rounded-lg hover:bg-muted flex items-center justify-center shrink-0"
-            >
-              <HugeiconsIcon icon={Add01Icon} className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
-            </button>
+        <div className="flex flex-col gap-2.5 items-stretch sm:items-end w-full lg:w-auto">
+          {/* Row 1: Date Navigation */}
+          <div className="flex items-center gap-2 justify-between sm:justify-end w-full">
+            <Button variant="outline" size="sm" className="h-8 px-3 text-xs font-semibold"
+              onClick={() => setCurrentDate(new Date())}>Today</Button>
+            <div className="flex items-center rounded-xl border bg-card shadow-xs overflow-hidden">
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-none"
+                onClick={() => setCurrentDate(new Date(year, month-1, 1))}>
+                <HugeiconsIcon icon={ArrowLeft01Icon} className="h-4 w-4" />
+              </Button>
+              <span className="select-none px-4 text-sm font-bold text-foreground min-w-[140px] text-center">
+                {MONTHS[month]} {year}
+              </span>
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-none"
+                onClick={() => setCurrentDate(new Date(year, month+1, 1))}>
+                <HugeiconsIcon icon={ArrowRight01Icon} className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-          <Button variant="outline" size="sm" className="h-8 px-3 gap-1.5 text-xs font-semibold" onClick={() => setHolidaySheetOpen(true)}>
-            <HugeiconsIcon icon={Calendar02Icon} className="h-3.5 w-3.5" />
-            Atur Libur
-          </Button>
-          <Button size="sm" className="h-8 px-3 gap-1.5 text-xs font-semibold" onClick={() => openAddSheet()}>
-            <HugeiconsIcon icon={Add01Icon} className="h-3.5 w-3.5" />
-            New Task
-          </Button>
-          <Button variant="outline" size="sm" className="h-8 px-3 text-xs font-semibold"
-            onClick={() => setCurrentDate(new Date())}>Today</Button>
-          <div className="flex items-center rounded-xl border bg-card shadow-xs overflow-hidden">
-            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-none"
-              onClick={() => setCurrentDate(new Date(year, month-1, 1))}>
-              <HugeiconsIcon icon={ArrowLeft01Icon} className="h-4 w-4" />
+
+          {/* Row 2: Action Buttons & Quick Add */}
+          <div className="flex items-center gap-2 flex-wrap justify-start sm:justify-end w-full">
+            <div className="flex items-center gap-1.5 border rounded-xl bg-card px-2.5 h-8 shadow-xs max-w-[280px] overflow-hidden">
+              <input
+                value={quickAddTaskText}
+                onChange={(e) => setQuickAddTaskText(e.target.value)}
+                placeholder="Quick Add: Tugas Statistika besok 8 malam"
+                className="border-0 bg-transparent h-full text-xs p-0 focus-visible:ring-0 focus-visible:outline-none min-w-[180px] w-full"
+              />
+              <button
+                onClick={handleQuickAddSubmit}
+                disabled={quickAddLoading}
+                className="h-6 w-6 rounded-lg hover:bg-muted flex items-center justify-center shrink-0"
+              >
+                <HugeiconsIcon icon={Add01Icon} className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+              </button>
+            </div>
+            <Button variant="outline" size="sm" className="h-8 px-3 gap-1.5 text-xs font-semibold" onClick={() => setHolidaySheetOpen(true)}>
+              <HugeiconsIcon icon={Calendar02Icon} className="h-3.5 w-3.5" />
+              Atur Libur
             </Button>
-            <span className="select-none px-4 text-sm font-bold text-foreground min-w-[140px] text-center">
-              {MONTHS[month]} {year}
-            </span>
-            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-none"
-              onClick={() => setCurrentDate(new Date(year, month+1, 1))}>
-              <HugeiconsIcon icon={ArrowRight01Icon} className="h-4 w-4" />
+            <Button size="sm" className="h-8 px-3 gap-1.5 text-xs font-semibold" onClick={() => openAddSheet()}>
+              <HugeiconsIcon icon={Add01Icon} className="h-3.5 w-3.5" />
+              New Task
             </Button>
           </div>
         </div>
