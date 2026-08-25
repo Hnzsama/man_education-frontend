@@ -263,6 +263,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             ),
           },
           {
+            title: "Files",
+            url: "/files",
+            icon: (
+              <HugeiconsIcon icon={Folder01Icon} strokeWidth={2} />
+            ),
+          },
+          {
             title: "Calendar",
             url: "/calendar",
             icon: (
