@@ -26,6 +26,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "
 import { Field, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger } from "@/components/ui/select"
+import { DatePicker } from "@/components/date-picker"
 
 // Import modular local components
 import { CalendarEventSheet } from "./components/calendar-event-sheet"
@@ -97,6 +98,7 @@ export default function CalendarPage() {
   const [excNewRoom, setExcNewRoom] = React.useState("")
   const [excNewLink, setExcNewLink] = React.useState("")
   const [excNote, setExcNote] = React.useState("")
+  const [excDate, setExcDate] = React.useState("")
   const [excLoading, setExcLoading] = React.useState(false)
 
   // ─── Data Fetch ─────────────────────────────────────────────
@@ -347,7 +349,7 @@ export default function CalendarPage() {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({
-          date: toDateStr(selectedDate),
+          date: excDate || toDateStr(selectedDate),
           type: excType,
           newStartTime: excType === "MOVED" ? excNewStartTime : undefined,
           newEndTime: excType === "MOVED" ? excNewEndTime : undefined,
@@ -715,6 +717,7 @@ export default function CalendarPage() {
           setExcNewLink={setExcNewLink}
           setExcNote={setExcNote}
           setExceptionSheetOpen={setExceptionSheetOpen}
+          setExcDate={setExcDate}
         />
       </div>
 
@@ -763,8 +766,16 @@ export default function CalendarPage() {
               <div className="p-3 rounded-xl border bg-primary/5 text-xs">
                 <p className="font-bold text-primary">{selectedSchedule.title}</p>
                 <p className="text-muted-foreground mt-0.5">Jadwal Asal: {selectedSchedule.rawSchedule.startTime} WIB @ {selectedSchedule.rawSchedule.room || "-"}</p>
-                <p className="text-muted-foreground">Hari ini: {selectedDate.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</p>
               </div>
+
+              <Field>
+                <FieldLabel className="text-xs font-semibold">Tanggal Perubahan *</FieldLabel>
+                <DatePicker
+                  value={excDate}
+                  onChange={setExcDate}
+                  placeholder="Pilih tanggal perubahan"
+                />
+              </Field>
 
               <Field>
                 <FieldLabel className="text-xs font-semibold">Status Perubahan Jadwal *</FieldLabel>

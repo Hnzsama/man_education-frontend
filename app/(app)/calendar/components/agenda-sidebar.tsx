@@ -44,6 +44,7 @@ interface AgendaSidebarProps {
   setExcNewRoom: (room: string) => void
   setExcNewLink: (link: string) => void
   setExcNote: (note: string) => void
+  setExcDate: (date: string) => void
   setExceptionSheetOpen: (open: boolean) => void
 }
 
@@ -71,6 +72,7 @@ export function AgendaSidebar({
   setExcNewRoom,
   setExcNewLink,
   setExcNote,
+  setExcDate,
   setExceptionSheetOpen,
 }: AgendaSidebarProps) {
   return (
@@ -153,6 +155,7 @@ export function AgendaSidebar({
                         setExcNewRoom(item.exception?.newRoom ?? item.room ?? "")
                         setExcNewLink(item.exception?.newLink ?? item.link ?? "")
                         setExcNote(item.exception?.note ?? "")
+                        setExcDate(item.exception?.date ?? toDateStr(selectedDate))
                         setExceptionSheetOpen(true)
                       }}
                       className={`flex flex-col gap-1 rounded-xl p-2.5 text-xs font-semibold border transition-all cursor-pointer hover:ring-[1.5px] hover:ring-primary/40
