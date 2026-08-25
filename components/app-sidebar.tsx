@@ -57,15 +57,8 @@ const data = {
       ),
     },
     {
-      title: "Pengumpulan",
-      url: "/submissions",
-      icon: (
-        <HugeiconsIcon icon={Attachment01Icon} strokeWidth={2} />
-      ),
-    },
-    {
-      title: "Materi",
-      url: "/resources",
+      title: "Berkas",
+      url: "/berkas",
       icon: (
         <HugeiconsIcon icon={Folder01Icon} strokeWidth={2} />
       ),
