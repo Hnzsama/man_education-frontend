@@ -200,7 +200,7 @@ export function TaskSheet({
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
       <SheetContent className="sm:max-w-md flex flex-col h-full overflow-hidden">
-        <SheetHeader className="shrink-0 pb-4 border-b">
+        <SheetHeader className="shrink-0 pb-4 border-b px-6 pt-6">
           <SheetTitle>{editingTaskId ? "Edit Task" : "Add Task"}</SheetTitle>
           <SheetDescription>
             {editingTaskId
@@ -208,7 +208,7 @@ export function TaskSheet({
               : "Create a new task with custom course mapping, deadline, and priority."}
           </SheetDescription>
         </SheetHeader>
-        <div className="flex-1 overflow-y-auto px-1 py-4 pr-2">
+        <div className="flex-1 overflow-y-auto px-6 py-5">
           <form onSubmit={handleSubmit} className="space-y-4">
             <Field>
               <FieldLabel htmlFor="task-title">Title</FieldLabel>

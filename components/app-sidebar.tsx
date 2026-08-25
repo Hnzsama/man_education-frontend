@@ -15,7 +15,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { DashboardSquare01Icon, Menu01Icon, ChartHistogramIcon, Folder01Icon, Calendar02Icon, UserGroupIcon, Camera01Icon, File01Icon, Settings05Icon, HelpCircleIcon, SearchIcon, Database01Icon, Analytics01Icon, CommandIcon, UserCircle02Icon } from "@hugeicons/core-free-icons"
+import { DashboardSquare01Icon, Menu01Icon, ChartHistogramIcon, Folder01Icon, Calendar02Icon, UserGroupIcon, Camera01Icon, File01Icon, Settings05Icon, HelpCircleIcon, SearchIcon, Database01Icon, Analytics01Icon, CommandIcon, UserCircle02Icon, CheckmarkCircle01Icon, Attachment01Icon } from "@hugeicons/core-free-icons"
 import { Button } from "@/components/ui/button"
 import { API_URL } from "@/lib/config"
 
@@ -54,6 +54,13 @@ const data = {
       url: "/tasks",
       icon: (
         <HugeiconsIcon icon={File01Icon} strokeWidth={2} />
+      ),
+    },
+    {
+      title: "Pengumpulan",
+      url: "/submissions",
+      icon: (
+        <HugeiconsIcon icon={Attachment01Icon} strokeWidth={2} />
       ),
     },
     {
