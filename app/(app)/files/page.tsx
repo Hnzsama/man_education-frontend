@@ -97,6 +97,9 @@ export default function FilesPage() {
   // Submissions Upload Sheet (untuk didalam folder task)
   const [subUploading, setSubUploading] = React.useState(false)
   const subFileInputRef = React.useRef<HTMLInputElement | null>(null)
+  const [taskSubmission, setTaskSubmission] = React.useState<any | null>(null)
+  const [submissionLinkInput, setSubmissionLinkInput] = React.useState("")
+  const [savingLink, setSavingLink] = React.useState(false)
 
   const fetchAll = React.useCallback(async () => {
     const token = getCookie("token")
@@ -137,7 +140,33 @@ export default function FilesPage() {
 
   React.useEffect(() => { fetchAll() }, [fetchAll])
 
-  // Custom Upload submissions per task (menyimpan ke TaskAttachment)
+  React.useEffect(() => {
+    if (!selectedTask) {
+      setTaskSubmission(null)
+      setSubmissionLinkInput("")
+      return
+    }
+    
+    const fetchSubmission = async () => {
+      const token = getCookie("token")
+      if (!token) return
+      try {
+        const res = await fetch(`${API_URL}/api/tasks/${selectedTask.id}/submission`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        if (res.ok) {
+          const data = await res.json()
+          setTaskSubmission(data)
+          setSubmissionLinkInput(data?.submissionLink || "")
+        }
+      } catch (err) {
+        console.error("Failed to load submission:", err)
+      }
+    }
+    fetchSubmission()
+  }, [selectedTask])
+
+  // Custom Upload submissions per task (menyimpan ke TaskSubmission)
   const uploadSubFiles = async (files: File[]) => {
     if (!selectedTask) return
     const token = getCookie("token")
@@ -146,17 +175,14 @@ export default function FilesPage() {
     try {
       const formData = new FormData()
       files.forEach((f) => formData.append("files", f))
-      const res = await fetch(`${API_URL}/api/tasks/${selectedTask.id}/attachments`, {
+      const res = await fetch(`${API_URL}/api/tasks/${selectedTask.id}/submission`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
       })
       if (!res.ok) { const e = await res.json(); throw new Error(e.message) }
-      const newAtts = await res.json()
-      // Update local task state
-      const updatedTask = { ...selectedTask, attachments: [...(selectedTask.attachments || []), ...(Array.isArray(newAtts) ? newAtts : [])] }
-      setSelectedTask(updatedTask)
-      setTasks((prev) => prev.map((t) => t.id === selectedTask.id ? updatedTask : t))
+      const newSubmission = await res.json()
+      setTaskSubmission(newSubmission)
       toast.add({ type: "success", description: `${files.length} files uploaded successfully` })
     } catch (err: any) {
       toast.add({ type: "error", description: err.message })
@@ -165,21 +191,50 @@ export default function FilesPage() {
     }
   }
 
-  const handleDeleteSub = async (attId: string) => {
+  const handleDeleteSub = async (fileId: string) => {
     if (!selectedTask) return
     const token = getCookie("token")
     try {
-      const res = await fetch(`${API_URL}/api/tasks/${selectedTask.id}/attachments/${attId}`, {
+      const res = await fetch(`${API_URL}/api/tasks/${selectedTask.id}/submission/files/${fileId}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       })
       if (!res.ok) throw new Error("Failed to delete")
-      const updatedTask = { ...selectedTask, attachments: (selectedTask.attachments || []).filter((a: any) => a.id !== attId) }
-      setSelectedTask(updatedTask)
-      setTasks((prev) => prev.map((t) => t.id === selectedTask.id ? updatedTask : t))
+      setTaskSubmission((prev: any) => {
+        if (!prev) return null
+        return {
+          ...prev,
+          files: (prev.files || []).filter((f: any) => f.id !== fileId)
+        }
+      })
       toast.add({ type: "success", description: "File deleted successfully" })
     } catch (err: any) {
       toast.add({ type: "error", description: err.message })
+    }
+  }
+
+  const handleSaveSubmissionLink = async () => {
+    if (!selectedTask) return
+    const token = getCookie("token")
+    if (!token) return
+    setSavingLink(true)
+    try {
+      const res = await fetch(`${API_URL}/api/tasks/${selectedTask.id}/submission`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ submissionLink: submissionLinkInput }),
+      })
+      if (!res.ok) { const e = await res.json(); throw new Error(e.message) }
+      const newSubmission = await res.json()
+      setTaskSubmission(newSubmission)
+      toast.add({ type: "success", description: "Submission link saved successfully" })
+    } catch (err: any) {
+      toast.add({ type: "error", description: err.message })
+    } finally {
+      setSavingLink(false)
     }
   }
 
@@ -240,10 +295,6 @@ export default function FilesPage() {
     ? resources.filter((r) => r.courseId === selectedCourse.id && !r.taskId)
     : []
 
-  // Filter attachments per task inside task folder
-  const taskSubmissions = selectedTask
-    ? selectedTask.attachments || []
-    : []
 
   const taskResources = selectedCourse && selectedTask
     ? resources.filter((r) => r.courseId === selectedCourse.id && r.taskId === selectedTask.id)
@@ -356,13 +407,34 @@ export default function FilesPage() {
               />
             </div>
 
+            {/* Submission Link input */}
+            <div className="flex flex-col gap-2 rounded-lg border bg-background p-3">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Submission Link (e.g. Google Drive/GitHub)</span>
+              <div className="flex gap-2">
+                <Input
+                  value={submissionLinkInput}
+                  onChange={(e) => setSubmissionLinkInput(e.target.value)}
+                  placeholder="https://..."
+                  className="h-8 text-xs flex-1"
+                />
+                <Button
+                  onClick={handleSaveSubmissionLink}
+                  disabled={savingLink}
+                  size="sm"
+                  className="h-8 text-xs font-semibold"
+                >
+                  {savingLink ? "Saving..." : "Save Link"}
+                </Button>
+              </div>
+            </div>
+
             <div className="space-y-2 mt-2">
-              {taskSubmissions.length === 0 ? (
+              {(!taskSubmission || (taskSubmission.files || []).length === 0) ? (
                 <p className="text-xs text-muted-foreground text-center py-6">No submission files uploaded yet.</p>
               ) : (
-                taskSubmissions.map((att: any) => {
+                (taskSubmission.files || []).map((att: any) => {
                   const isImage = att.fileType?.startsWith("image/")
-                  const fileUrl = `${API_URL}/uploads/tasks/${att.filePath}`
+                  const fileUrl = `${API_URL}/uploads/submissions/${att.filePath}`
                   return (
                     <div key={att.id} className="group flex items-center gap-3 rounded-lg border bg-background p-2.5 hover:bg-muted/10 transition-all">
                       {isImage ? (
@@ -393,18 +465,42 @@ export default function FilesPage() {
               Materials Related to this Task
             </h2>
             <div className="space-y-2">
-              {taskResources.length === 0 ? (
+              {((selectedTask?.attachments || []).length === 0 && taskResources.length === 0) ? (
                 <p className="text-xs text-muted-foreground text-center py-6">No materials attached to this task.</p>
               ) : (
-                taskResources.map((r: any) => (
-                  <div key={r.id} className="group flex items-center gap-3 rounded-lg border bg-background p-2.5">
-                    <HugeiconsIcon icon={r.type === "LINK" ? Link01Icon : r.type === "FILE" ? File01Icon : NoteIcon} className="h-4 w-4 text-primary shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-xs truncate">{r.title}</p>
-                      {r.url && <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-primary truncate block hover:underline">{r.url}</a>}
+                <>
+                  {/* Task Attachments (from teacher/creator) */}
+                  {(selectedTask?.attachments || []).map((att: any) => {
+                    const isImage = att.fileType?.startsWith("image/")
+                    const fileUrl = `${API_URL}/uploads/tasks/${att.filePath}`
+                    return (
+                      <div key={att.id} className="group flex items-center gap-3 rounded-lg border bg-background p-2.5">
+                        {isImage ? (
+                          <img src={fileUrl} className="h-8 w-8 rounded object-cover shrink-0" />
+                        ) : (
+                          <div className="h-8 w-8 rounded bg-primary/5 border flex items-center justify-center shrink-0">
+                            <HugeiconsIcon icon={File01Icon} className="h-4 w-4 text-primary" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="font-semibold text-xs truncate block hover:text-primary hover:underline">{att.name}</a>
+                          <span className="text-[9px] text-muted-foreground">{formatBytes(att.fileSize)}</span>
+                        </div>
+                      </div>
+                    )
+                  })}
+
+                  {/* Course Resources linked to this task */}
+                  {taskResources.map((r: any) => (
+                    <div key={r.id} className="group flex items-center gap-3 rounded-lg border bg-background p-2.5">
+                      <HugeiconsIcon icon={r.type === "LINK" ? Link01Icon : r.type === "FILE" ? File01Icon : NoteIcon} className="h-4 w-4 text-primary shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-xs truncate">{r.title}</p>
+                        {r.url && <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-primary truncate block hover:underline">{r.url}</a>}
+                      </div>
                     </div>
-                  </div>
-                ))
+                  ))}
+                </>
               )}
             </div>
           </div>

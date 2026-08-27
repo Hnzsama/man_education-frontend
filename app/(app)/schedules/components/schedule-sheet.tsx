@@ -69,7 +69,7 @@ export function ScheduleSheet({
 
     if (editingScheduleId && editingCourseId) {
       const token = getCookie("token")
-      fetch(`${API_URL}/api/semesters/${selectedSemesterId}/courses/${editingCourseId}/schedules`, {
+      fetch(`${API_URL}/api/courses/${editingCourseId}/schedules`, {
         headers: { Authorization: `Bearer ${token}` }
       })
         .then(res => {
