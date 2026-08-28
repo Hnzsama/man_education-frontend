@@ -46,7 +46,8 @@ export default function TaskFilesPage() {
       if (courseRes.ok) setCourse(await courseRes.json())
       if (taskRes.ok) setTask(await taskRes.json())
       if (submissionRes.ok) {
-        const subData = await submissionRes.json()
+        const text = await submissionRes.text()
+        const subData = text ? JSON.parse(text) : null
         setTaskSubmission(subData)
         setSubmissionLinkInput(subData?.submissionLink || "")
       }
