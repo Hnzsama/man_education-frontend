@@ -48,6 +48,12 @@ export function TaskCard({
   // Sync attachments when task prop changes
   React.useEffect(() => { setLocalAttachments(task.attachments || []) }, [task.attachments])
 
+  // Combined materials: legacy attachments + course resources of type FILE linked to this task
+  const allMaterials = [
+    ...(task.attachments || []).map((a: any) => ({ ...a, _isLegacy: true })),
+    ...((task.resources || []).filter((r: any) => r.type === "FILE")).map((r: any) => ({ ...r, _isLegacy: false })),
+  ]
+
   const matchedCourse = courses.find((c) => c.id === task.courseId)
   const isDone = task.status === "DONE"
   const isHigh = task.priority === "HIGH"
@@ -142,16 +148,21 @@ export function TaskCard({
             )}
           </div>
 
-          {/* Attachments Display */}
-          {task.attachments && task.attachments.length > 0 && (
+          {/* Attachments / Material Display */}
+          {allMaterials.length > 0 && (
             <div className="pt-2.5 border-t border-border/30 space-y-1.5">
               <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
-                Attachments ({task.attachments.length})
+                Attachments / Material ({allMaterials.length})
               </span>
               <div className="flex flex-wrap gap-2">
-                {task.attachments.map((att: any) => {
-                  const isImage = att.fileType.startsWith("image/")
-                  const fileUrl = `${API_URL}/uploads/tasks/${att.filePath}`
+                {allMaterials.map((att: any) => {
+                  const fileType = att.fileType || att.mimeType || ""
+                  const isImage = fileType.startsWith("image/")
+                  const fileUrl = att._isLegacy
+                    ? `${API_URL}/uploads/tasks/${att.filePath}`
+                    : `${API_URL}/uploads/resources/${att.filePath}`
+                  const displayName = att.name || att.title || "File"
+                  const sizeKb = att.fileSize ? (att.fileSize / 1024).toFixed(1) : null
 
                   return (
                     <div
@@ -167,7 +178,7 @@ export function TaskCard({
                         >
                           <img
                             src={fileUrl}
-                            alt={att.name}
+                            alt={displayName}
                             className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-200"
                           />
                         </a>
@@ -182,13 +193,13 @@ export function TaskCard({
                           target="_blank"
                           rel="noopener noreferrer"
                           className="font-medium text-[11px] text-foreground hover:text-primary transition-colors truncate max-w-[120px] block"
-                          title={att.name}
+                          title={displayName}
                         >
-                          {att.name}
+                          {displayName}
                         </a>
-                        <span className="text-[9px] text-muted-foreground">
-                          {(att.fileSize / 1024).toFixed(1)} KB
-                        </span>
+                        {sizeKb && (
+                          <span className="text-[9px] text-muted-foreground">{sizeKb} KB</span>
+                        )}
                       </div>
                     </div>
                   )
