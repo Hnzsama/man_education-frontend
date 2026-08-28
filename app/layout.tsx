@@ -18,9 +18,23 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Man Education",
-  description: "Education Planner System",
+  description: "Kelola tugas, materi kuliah, dan jadwal belajar kamu dalam satu platform yang terorganisir.",
+  metadataBase: new URL("https://not-devel-pale-deborah.trycloudflare.com"),
   icons: {
     icon: "/logo.svg",
+  },
+  openGraph: {
+    title: "Man Education",
+    description: "Kelola tugas, materi kuliah, dan jadwal belajar kamu dalam satu platform yang terorganisir.",
+    url: "https://not-devel-pale-deborah.trycloudflare.com",
+    siteName: "Man Education",
+    locale: "id_ID",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Man Education",
+    description: "Kelola tugas, materi kuliah, dan jadwal belajar kamu dalam satu platform yang terorganisir.",
   },
 };
 
