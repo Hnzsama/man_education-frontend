@@ -54,6 +54,9 @@ export function TaskCard({
     ...((task.resources || []).filter((r: any) => r.type === "FILE")).map((r: any) => ({ ...r, _isLegacy: false })),
   ]
 
+  // Prisma returns submissions as array; take the first (most recent) one
+  const submission = (task.submissions || [])[0] ?? null
+
   const matchedCourse = courses.find((c) => c.id === task.courseId)
   const isDone = task.status === "DONE"
   const isHigh = task.priority === "HIGH"
@@ -209,16 +212,16 @@ export function TaskCard({
           )}
 
           {/* Submission Display */}
-          {task.submission && (
+          {submission && (
             <div className="pt-2.5 border-t border-border/30 space-y-1.5">
               <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider block">
                 Submissions
               </span>
 
               {/* Submission Link */}
-              {task.submission.submissionLink && (
+              {submission.submissionLink && (
                 <a
-                  href={task.submission.submissionLink}
+                  href={submission.submissionLink}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-2 pr-3 text-xs hover:bg-emerald-500/10 transition-colors group"
@@ -228,17 +231,17 @@ export function TaskCard({
                   </div>
                   <div className="flex flex-col min-w-0">
                     <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wide">Submission Link</span>
-                    <span className="font-medium text-[11px] text-foreground truncate max-w-[160px]" title={task.submission.submissionLink}>
-                      {task.submission.submissionLink}
+                    <span className="font-medium text-[11px] text-foreground truncate max-w-[160px]" title={submission.submissionLink}>
+                      {submission.submissionLink}
                     </span>
                   </div>
                 </a>
               )}
 
               {/* Submitted Files */}
-              {(task.submission.files || []).length > 0 && (
+              {(submission.files || []).length > 0 && (
                 <div className="flex flex-wrap gap-2">
-                  {(task.submission.files || []).map((file: any) => {
+                  {(submission.files || []).map((file: any) => {
                     const isImage = file.fileType?.startsWith("image/")
                     const fileUrl = `${API_URL}/uploads/submissions/${file.filePath}`
                     const sizeKb = file.fileSize ? (file.fileSize / 1024).toFixed(1) : null
