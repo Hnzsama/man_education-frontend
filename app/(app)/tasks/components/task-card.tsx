@@ -207,6 +207,75 @@ export function TaskCard({
               </div>
             </div>
           )}
+
+          {/* Submission Display */}
+          {task.submission && (
+            <div className="pt-2.5 border-t border-border/30 space-y-1.5">
+              <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider block">
+                Submissions
+              </span>
+
+              {/* Submission Link */}
+              {task.submission.submissionLink && (
+                <a
+                  href={task.submission.submissionLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-2 pr-3 text-xs hover:bg-emerald-500/10 transition-colors group"
+                >
+                  <div className="h-6 w-6 rounded border border-emerald-500/40 bg-emerald-500/10 flex items-center justify-center shrink-0">
+                    <HugeiconsIcon icon={Link01Icon} className="h-3.5 w-3.5 text-emerald-500" />
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wide">Submission Link</span>
+                    <span className="font-medium text-[11px] text-foreground truncate max-w-[160px]" title={task.submission.submissionLink}>
+                      {task.submission.submissionLink}
+                    </span>
+                  </div>
+                </a>
+              )}
+
+              {/* Submitted Files */}
+              {(task.submission.files || []).length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {(task.submission.files || []).map((file: any) => {
+                    const isImage = file.fileType?.startsWith("image/")
+                    const fileUrl = `${API_URL}/uploads/submissions/${file.filePath}`
+                    const sizeKb = file.fileSize ? (file.fileSize / 1024).toFixed(1) : null
+                    return (
+                      <div
+                        key={file.id}
+                        className="group flex items-center gap-2 rounded-lg border border-sky-500/30 bg-sky-500/5 p-1.5 pr-2.5 text-xs hover:bg-sky-500/10 transition-colors"
+                      >
+                        {isImage ? (
+                          <a href={fileUrl} target="_blank" rel="noopener noreferrer"
+                            className="h-8 w-8 rounded overflow-hidden border border-sky-500/30 flex-shrink-0">
+                            <img src={fileUrl} alt={file.name} className="h-full w-full object-cover" />
+                          </a>
+                        ) : (
+                          <div className="h-8 w-8 rounded border border-sky-500/40 bg-sky-500/10 flex items-center justify-center text-sky-500 flex-shrink-0">
+                            <HugeiconsIcon icon={File01Icon} className="h-4 w-4" />
+                          </div>
+                        )}
+                        <div className="flex flex-col min-w-0">
+                          <a
+                            href={fileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-medium text-[11px] text-foreground hover:text-sky-500 transition-colors truncate max-w-[120px] block"
+                            title={file.name}
+                          >
+                            {file.name}
+                          </a>
+                          {sizeKb && <span className="text-[9px] text-muted-foreground">{sizeKb} KB</span>}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </CardContent>
       <CardFooter className="pt-3 border-t border-border/40 flex justify-between items-center gap-2 bg-muted/10">
