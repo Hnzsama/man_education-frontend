@@ -127,8 +127,8 @@ export function ScheduleSheet({
           dayOfWeek: parseInt(dayOfWeek, 10),
           startTime,
           endTime,
-          room: room || undefined,
-          link: link || undefined,
+          room: room || null,
+          link: link || null,
         }),
       })
 
