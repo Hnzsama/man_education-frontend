@@ -87,7 +87,19 @@ export function TaskSheet({
           setWeightPercentage(data.weightPercentage?.toString() || "")
           setSubmissionMethod(data.submissionMethod || "OFFLINE")
           setSubmissionLink(data.submissionLink || "")
-          setExistingAttachments(data.attachments || [])
+          
+          const combined = [
+            ...(data.attachments || []).map((att: any) => ({ ...att, isLegacyAttachment: true })),
+            ...(data.resources || []).filter((r: any) => r.type === "FILE").map((r: any) => ({
+              id: r.id,
+              name: r.fileName || r.title,
+              filePath: r.filePath,
+              fileType: r.mimeType || "application/octet-stream",
+              fileSize: r.fileSize || 0,
+              isLegacyAttachment: false
+            }))
+          ]
+          setExistingAttachments(combined)
           
           // Timezone conversion for local datetime input
           if (data.deadline) {
@@ -154,20 +166,45 @@ export function TaskSheet({
       // Handle file uploads if any
       if (selectedFiles.length > 0) {
         const taskId = editingTaskId || savedTask.id
-        const formData = new FormData()
-        selectedFiles.forEach((file) => {
-          formData.append("files", file)
-        })
+        const activeCourseId = courseId !== "none" ? courseId : savedTask.courseId
 
-        const uploadRes = await fetch(`${API_URL}/api/tasks/${taskId}/attachments`, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`
-          },
-          body: formData
-        })
+        if (activeCourseId && activeCourseId !== "none") {
+          // Upload as course resources (materials)
+          for (const file of selectedFiles) {
+            const formData = new FormData()
+            formData.append("courseId", activeCourseId)
+            formData.append("taskId", taskId)
+            formData.append("title", file.name)
+            formData.append("type", "FILE")
+            formData.append("file", file)
 
-        if (!uploadRes.ok) throw new Error("Task saved, but attachment upload failed")
+            const uploadRes = await fetch(`${API_URL}/api/resources`, {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${token}`
+              },
+              body: formData
+            })
+
+            if (!uploadRes.ok) throw new Error(`Failed to upload ${file.name} to course materials`)
+          }
+        } else {
+          // Fallback: upload as task attachments
+          const formData = new FormData()
+          selectedFiles.forEach((file) => {
+            formData.append("files", file)
+          })
+
+          const uploadRes = await fetch(`${API_URL}/api/tasks/${taskId}/attachments`, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`
+            },
+            body: formData
+          })
+
+          if (!uploadRes.ok) throw new Error("Task saved, but attachment upload failed")
+        }
       }
 
       toast.add({ type: "success", description: editingTaskId ? "Task updated!" : "Task created!" })
@@ -183,8 +220,14 @@ export function TaskSheet({
   const handleDeleteAttachment = async (attachmentId: string) => {
     if (!editingTaskId) return
     const token = getCookie("token")
+    const item = existingAttachments.find((att) => att.id === attachmentId)
+    if (!item) return
     try {
-      const res = await fetch(`${API_URL}/api/tasks/${editingTaskId}/attachments/${attachmentId}`, {
+      const url = item.isLegacyAttachment
+        ? `${API_URL}/api/tasks/${editingTaskId}/attachments/${attachmentId}`
+        : `${API_URL}/api/resources/${attachmentId}`
+
+      const res = await fetch(url, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` }
       })
@@ -369,7 +412,9 @@ export function TaskSheet({
                 <div className="grid gap-2">
                   {existingAttachments.map((att: any) => {
                     const isImage = att.fileType.startsWith("image/")
-                    const fileUrl = `${API_URL}/uploads/tasks/${att.filePath}`
+                    const fileUrl = att.isLegacyAttachment
+                      ? `${API_URL}/uploads/tasks/${att.filePath}`
+                      : `${API_URL}/uploads/resources/${att.filePath}`
 
                     return (
                       <div
