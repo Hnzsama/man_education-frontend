@@ -57,22 +57,36 @@ export default function CourseFilesPage() {
     if (!token) { router.push("/login"); return }
     setLoading(true)
     try {
-      const [courseRes, tasksRes, resourcesRes, allCoursesRes] = await Promise.all([
+      // Get course by id and tasks/resources in parallel
+      const [courseRes, tasksRes, resourcesRes] = await Promise.all([
         fetch(`${API_URL}/api/courses/${courseId}`, { headers: { Authorization: `Bearer ${token}` } }),
         fetch(`${API_URL}/api/tasks`, { headers: { Authorization: `Bearer ${token}` } }),
         fetch(`${API_URL}/api/resources`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${API_URL}/api/courses`, { headers: { Authorization: `Bearer ${token}` } }),
       ])
-      if (courseRes.ok) setCourse(await courseRes.json())
+
+      let courseData: any = null
+      if (courseRes.ok) {
+        courseData = await courseRes.json()
+        setCourse(courseData)
+      }
       if (tasksRes.ok) setTasks(await tasksRes.json())
       if (resourcesRes.ok) setResources(await resourcesRes.json())
-      if (allCoursesRes.ok) setCourses(await allCoursesRes.json())
+
+      // Fetch all courses from the semester (needed for palette index in CourseFolderDetails)
+      if (courseData?.semesterId) {
+        const allCoursesRes = await fetch(
+          `${API_URL}/api/semesters/${courseData.semesterId}/courses`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        )
+        if (allCoursesRes.ok) setCourses(await allCoursesRes.json())
+      }
     } catch (err: any) {
       toast.add({ type: "error", description: err.message || "Failed to load data" })
     } finally {
       setLoading(false)
     }
   }, [courseId, router])
+
 
   React.useEffect(() => { fetchAll() }, [fetchAll])
 
