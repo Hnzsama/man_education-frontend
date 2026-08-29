@@ -10,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -227,10 +228,60 @@ export default function SchedulesPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center font-sans">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-          <span className="text-muted-foreground text-sm">Loading academic data...</span>
+      <div className="flex flex-1 flex-col gap-4 py-4 md:gap-6 md:py-6 animate-pulse">
+        <div className="flex flex-col gap-6 px-4 lg:px-6">
+          {/* Header Title and Actions Skeleton */}
+          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+            <div className="flex flex-col gap-2">
+              <Skeleton className="h-8 w-48 rounded-lg" />
+              <Skeleton className="h-4 w-80 rounded-lg" />
+            </div>
+            <div className="flex gap-2">
+              <Skeleton className="h-10 w-24 rounded-lg" />
+              <Skeleton className="h-10 w-32 rounded-lg" />
+            </div>
+          </div>
+
+          {/* Semester Selector and Toggle Skeleton */}
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b pb-4">
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-4 w-16 rounded-lg" />
+              <Skeleton className="h-9 w-48 rounded-lg" />
+            </div>
+            <Skeleton className="h-9 w-32 rounded-lg" />
+          </div>
+
+          {/* Daily Schedule Blocks Skeleton */}
+          <div className="grid gap-6 md:grid-cols-5">
+            {Array.from({ length: 5 }).map((_, dayIdx) => (
+              <Card key={dayIdx} className="border border-border/60 shadow-xs flex flex-col justify-between">
+                <CardHeader className="pb-3 bg-muted/40 rounded-t-xl py-4 border-b border-border/40">
+                  <Skeleton className="h-5 w-24 rounded-lg mx-auto" />
+                </CardHeader>
+                <CardContent className="pt-4 flex-1 space-y-4 min-h-[250px]">
+                  {dayIdx % 2 === 0 ? (
+                    Array.from({ length: 2 }).map((_, i) => (
+                      <div key={i} className="p-3 rounded-xl border border-border/50 space-y-2">
+                        <Skeleton className="h-4 w-full rounded-lg" />
+                        <div className="flex items-center gap-1">
+                          <Skeleton className="h-3 w-3 rounded-full" />
+                          <Skeleton className="h-3 w-16 rounded-lg" />
+                        </div>
+                        <div className="flex justify-between items-center pt-2">
+                          <Skeleton className="h-3 w-12 rounded-lg" />
+                          <Skeleton className="h-6 w-6 rounded-lg" />
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="h-full flex items-center justify-center">
+                      <Skeleton className="h-4 w-28 rounded-lg" />
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
       </div>
     )

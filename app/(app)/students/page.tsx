@@ -10,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Field, FieldLabel } from "@/components/ui/field"
@@ -113,10 +114,52 @@ export default function StudentsPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center font-sans">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-          <span className="text-muted-foreground text-sm">Loading student list...</span>
+      <div className="flex flex-1 flex-col gap-4 py-4 md:gap-6 md:py-6 animate-pulse font-sans">
+        <div className="flex flex-col gap-6 px-4 lg:px-6">
+          {/* Header Title Skeleton */}
+          <div className="flex flex-col gap-2">
+            <Skeleton className="h-8 w-64 rounded-lg" />
+            <Skeleton className="h-4 w-96 rounded-lg" />
+          </div>
+
+          {/* Main Layout Grid */}
+          <div className="grid gap-6 lg:grid-cols-3">
+            {/* Invite Form Skeleton */}
+            <Card className="border border-border/60 shadow-xs h-fit">
+              <CardHeader>
+                <Skeleton className="h-6 w-32 rounded-lg" />
+                <Skeleton className="h-4 w-48 rounded-lg mt-1" />
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-16 rounded-lg" />
+                  <Skeleton className="h-10 w-full rounded-lg" />
+                </div>
+                <Skeleton className="h-10 w-full rounded-lg" />
+              </CardContent>
+            </Card>
+
+            {/* Students List Skeleton */}
+            <div className="lg:col-span-2 space-y-4">
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-5 w-5 rounded-full" />
+                <Skeleton className="h-6 w-40 rounded-lg" />
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <Card key={i} className="border border-border/60 shadow-xs">
+                    <CardContent className="p-4 flex items-center gap-4">
+                      <Skeleton className="h-12 w-12 rounded-full shrink-0" />
+                      <div className="flex-1 space-y-2">
+                        <Skeleton className="h-4 w-3/4 rounded-lg" />
+                        <Skeleton className="h-3 w-1/2 rounded-lg" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     )

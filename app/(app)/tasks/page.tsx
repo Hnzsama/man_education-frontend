@@ -10,6 +10,7 @@ import { AlertCircleIcon, CircleCheckIcon, Add01Icon } from "@hugeicons/core-fre
 import { toast } from "@/components/ui/toast"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger } from "@/components/ui/select"
+import { Skeleton } from "@/components/ui/skeleton"
 import { TaskCard } from "./components/task-card"
 import { TaskSheet } from "./components/task-sheet"
 import { TaskDetailSheet } from "./components/task-detail-sheet"
@@ -75,44 +76,46 @@ export default function TasksPage() {
     }
 
     try {
-      // Fetch user details to verify WhatsApp connection
-      const meRes = await fetch(`${API_URL}/api/users/me`, {
+      // Parallel asynchronous fetches
+      const mePromise = fetch(`${API_URL}/api/users/me`, {
         headers: { Authorization: `Bearer ${token}` },
-      })
-      if (meRes.ok) {
-        const userData = await meRes.json()
-        setCurrentUser(userData)
-      }
+      }).then(res => res.ok ? res.json() : null)
 
-      // 1. Fetch semesters first to find all courses
-      const semRes = await fetch(`${API_URL}/api/semesters`, {
+      const tasksPromise = fetch(`${API_URL}/api/tasks`, {
         headers: { Authorization: `Bearer ${token}` },
-      })
-      if (!semRes.ok) throw new Error("Failed to load semesters")
-      const semData = await semRes.json()
-      setSemesters(semData)
-      
-      let allCourses: any[] = []
-      await Promise.all(
-        semData.map(async (sem: any) => {
-          const courseRes = await fetch(`${API_URL}/api/semesters/${sem.id}/courses`, {
-            headers: { Authorization: `Bearer ${token}` },
+      }).then(res => res.ok ? res.json() : [])
+
+      const semPromise = fetch(`${API_URL}/api/semesters`, {
+        headers: { Authorization: `Bearer ${token}` },
+      }).then(async res => {
+        if (!res.ok) throw new Error("Failed to load semesters")
+        const semData = await res.json()
+        
+        let allCourses: any[] = []
+        await Promise.all(
+          semData.map(async (sem: any) => {
+            const courseRes = await fetch(`${API_URL}/api/semesters/${sem.id}/courses`, {
+              headers: { Authorization: `Bearer ${token}` },
+            })
+            if (courseRes.ok) {
+              const courseData = await courseRes.json()
+              allCourses = [...allCourses, ...courseData]
+            }
           })
-          if (courseRes.ok) {
-            const courseData = await courseRes.json()
-            allCourses = [...allCourses, ...courseData]
-          }
-        })
-      )
-      setCourses(allCourses)
-
-      // 2. Fetch Tasks
-      const tasksRes = await fetch(`${API_URL}/api/tasks`, {
-        headers: { Authorization: `Bearer ${token}` },
+        )
+        return { semData, allCourses }
       })
-      if (!tasksRes.ok) throw new Error("Failed to load tasks")
-      const tasksData = await tasksRes.json()
+
+      const [userData, tasksData, semResult] = await Promise.all([
+        mePromise,
+        tasksPromise,
+        semPromise
+      ])
+
+      if (userData) setCurrentUser(userData)
       setTasks(tasksData)
+      setSemesters(semResult.semData)
+      setCourses(semResult.allCourses)
 
       setLoading(false)
     } catch (err: any) {
@@ -151,29 +154,28 @@ export default function TasksPage() {
           status,
           priority,
           isGroupTask,
-          myPart: isGroupTask ? (myPart || null) : null,
-          weightPercentage: weightPercentage ? parseInt(weightPercentage, 10) : null,
+          myPart: isGroupTask ? myPart || undefined : undefined,
+          weightPercentage: weightPercentage ? parseFloat(weightPercentage) : undefined,
           submissionMethod,
-          submissionLink: submissionLink || null,
+          submissionLink: submissionMethod === "ONLINE" ? submissionLink || undefined : undefined,
         }),
       })
 
       if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.message || "Failed to save task")
+        const errData = await res.json()
+        throw new Error(errData.message || "Failed to save task")
       }
 
       const savedTask = await res.json()
-      const taskId = editingTaskId || savedTask.id
 
-      // Upload files if selected
-      if (selectedFiles.length > 0 && taskId) {
+      // Handle file attachments if any
+      if (selectedFiles.length > 0) {
         const formData = new FormData()
         selectedFiles.forEach((file) => {
           formData.append("files", file)
         })
 
-        const uploadRes = await fetch(`${API_URL}/api/tasks/${taskId}/attachments`, {
+        const attachRes = await fetch(`${API_URL}/api/tasks/${savedTask.id}/attachments`, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
@@ -181,9 +183,8 @@ export default function TasksPage() {
           body: formData,
         })
 
-        if (!uploadRes.ok) {
-          const uploadErr = await uploadRes.json()
-          throw new Error(uploadErr.message || "Failed to upload attachments")
+        if (!attachRes.ok) {
+          throw new Error("Task saved, but failed to upload attachments")
         }
       }
 
@@ -386,10 +387,75 @@ export default function TasksPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center font-sans">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-          <span className="text-muted-foreground text-sm">Loading tasks...</span>
+      <div className="flex flex-1 flex-col gap-4 py-4 md:gap-6 md:py-6 animate-pulse">
+        <div className="flex flex-col gap-6 px-4 lg:px-6">
+          {/* Header Title and Actions Skeleton */}
+          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+            <div className="flex flex-col gap-2">
+              <Skeleton className="h-8 w-64 rounded-lg" />
+              <Skeleton className="h-4 w-96 rounded-lg" />
+            </div>
+            <Skeleton className="h-10 w-32 rounded-lg shrink-0" />
+          </div>
+
+          {/* Filters Bar Skeleton */}
+          <div className="flex flex-col gap-4 border-b pb-4">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              {/* Status Filters */}
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-4 w-12 rounded-lg" />
+                <div className="flex gap-2">
+                  <Skeleton className="h-7 w-12 rounded-full" />
+                  <Skeleton className="h-7 w-16 rounded-full" />
+                  <Skeleton className="h-7 w-24 rounded-full" />
+                  <Skeleton className="h-7 w-16 rounded-full" />
+                </div>
+              </div>
+              {/* Priority Filters */}
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-4 w-12 rounded-lg" />
+                <div className="flex gap-2">
+                  <Skeleton className="h-7 w-12 rounded-full" />
+                  <Skeleton className="h-7 w-16 rounded-full" />
+                  <Skeleton className="h-7 w-20 rounded-full" />
+                  <Skeleton className="h-7 w-16 rounded-full" />
+                </div>
+              </div>
+            </div>
+
+            {/* Dropdown Filters */}
+            <div className="flex flex-wrap gap-4 items-center">
+              <div className="flex items-center gap-2 min-w-[200px]">
+                <Skeleton className="h-4 w-16 rounded-lg" />
+                <Skeleton className="h-9 w-40 rounded-lg" />
+              </div>
+              <div className="flex items-center gap-2 min-w-[200px]">
+                <Skeleton className="h-4 w-16 rounded-lg" />
+                <Skeleton className="h-9 w-40 rounded-lg" />
+              </div>
+            </div>
+          </div>
+
+          {/* Task Grid Skeleton */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Card key={i} className="border border-border/60 shadow-xs flex flex-col justify-between p-5 space-y-4">
+                <div className="space-y-3">
+                  <div className="flex justify-between items-start">
+                    <Skeleton className="h-5 w-3/4 rounded-lg" />
+                    <Skeleton className="h-5 w-12 rounded-full" />
+                  </div>
+                  <Skeleton className="h-4 w-1/2 rounded-lg" />
+                  <Skeleton className="h-3 w-full rounded-lg" />
+                  <Skeleton className="h-3 w-5/6 rounded-lg" />
+                </div>
+                <div className="space-y-2 pt-2 border-t border-border/40">
+                  <Skeleton className="h-3 w-1/3 rounded-lg" />
+                  <Skeleton className="h-3 w-1/2 rounded-lg" />
+                </div>
+              </Card>
+            ))}
+          </div>
         </div>
       </div>
     )

@@ -10,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import {
   Table,
@@ -195,10 +196,75 @@ export default function CoursesPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center font-sans">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-          <span className="text-muted-foreground text-sm">Loading academic data...</span>
+      <div className="flex flex-1 flex-col gap-4 py-4 md:gap-6 md:py-6 animate-pulse">
+        <div className="flex flex-col gap-6 px-4 lg:px-6">
+          {/* Header Title and Actions Skeleton */}
+          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+            <div className="flex flex-col gap-2">
+              <Skeleton className="h-8 w-48 rounded-lg" />
+              <Skeleton className="h-4 w-80 rounded-lg" />
+            </div>
+            <Skeleton className="h-10 w-32 rounded-lg shrink-0" />
+          </div>
+
+          {/* Semester Selector Skeleton */}
+          <div className="flex items-center gap-2 max-w-xs">
+            <Skeleton className="h-4 w-24 rounded-lg" />
+            <Skeleton className="h-9 w-48 rounded-lg" />
+          </div>
+
+          {/* Overview Metrics Cards Skeleton */}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Card className="border border-border/60 shadow-xs">
+              <CardContent className="py-5 flex items-center justify-between">
+                <div className="space-y-2">
+                  <Skeleton className="h-3 w-20 rounded-lg" />
+                  <Skeleton className="h-6 w-16 rounded-lg" />
+                </div>
+                <Skeleton className="h-10 w-10 rounded-lg" />
+              </CardContent>
+            </Card>
+            <Card className="border border-border/60 shadow-xs">
+              <CardContent className="py-5 flex items-center justify-between">
+                <div className="space-y-2">
+                  <Skeleton className="h-3 w-24 rounded-lg" />
+                  <Skeleton className="h-6 w-20 rounded-lg" />
+                </div>
+                <Skeleton className="h-10 w-10 rounded-lg" />
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Courses Table Skeleton */}
+          <Card className="border border-border/60 shadow-xs">
+            <CardContent className="p-0">
+              <div className="space-y-4 p-4">
+                {/* Table Header */}
+                <div className="grid grid-cols-6 gap-4 pb-2 border-b border-border/40">
+                  <Skeleton className="h-4 w-16 rounded-lg" />
+                  <Skeleton className="h-4 w-32 rounded-lg" />
+                  <Skeleton className="h-4 w-12 rounded-lg" />
+                  <Skeleton className="h-4 w-24 rounded-lg" />
+                  <Skeleton className="h-4 w-20 rounded-lg" />
+                  <Skeleton className="h-4 w-16 rounded-lg text-right" />
+                </div>
+                {/* Table Rows */}
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="grid grid-cols-6 gap-4 items-center py-2 border-b border-border/20 last:border-0">
+                    <Skeleton className="h-4 w-12 rounded-lg" />
+                    <Skeleton className="h-4 w-40 rounded-lg" />
+                    <Skeleton className="h-4 w-8 rounded-lg" />
+                    <Skeleton className="h-4 w-28 rounded-lg" />
+                    <Skeleton className="h-4 w-16 rounded-lg" />
+                    <div className="flex justify-end gap-2">
+                      <Skeleton className="h-8 w-8 rounded-lg" />
+                      <Skeleton className="h-8 w-8 rounded-lg" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     )

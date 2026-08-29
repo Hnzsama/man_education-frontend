@@ -5,6 +5,7 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
@@ -84,10 +85,59 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center font-sans">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-          <span className="text-muted-foreground text-sm">Loading profile data...</span>
+      <div className="flex flex-1 flex-col gap-4 py-4 md:gap-6 md:py-6 animate-pulse font-sans">
+        <div className="flex flex-col gap-6 px-4 lg:px-6">
+          {/* Header Title Skeleton */}
+          <div className="flex flex-col gap-2">
+            <Skeleton className="h-8 w-48 rounded-lg" />
+            <Skeleton className="h-4 w-80 rounded-lg" />
+          </div>
+
+          {/* Main Layout Grid */}
+          <div className="grid gap-6 md:grid-cols-2">
+            {/* Profile Info Card Skeleton */}
+            <Card className="border border-border/60 shadow-xs">
+              <CardHeader className="pb-3 border-b border-border/40">
+                <Skeleton className="h-6 w-36 rounded-lg" />
+                <Skeleton className="h-4 w-56 rounded-lg mt-1" />
+              </CardHeader>
+              <CardContent className="pt-6 space-y-6">
+                <div className="flex flex-col items-center gap-4 text-center pb-4 border-b border-border/40">
+                  <Skeleton className="h-20 w-20 rounded-full" />
+                  <div className="space-y-2">
+                    <Skeleton className="h-5 w-40 rounded-lg mx-auto" />
+                    <Skeleton className="h-4 w-32 rounded-lg mx-auto" />
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <Skeleton className="h-4 w-16 rounded-lg" />
+                    <Skeleton className="h-4 w-32 rounded-lg" />
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <Skeleton className="h-4 w-12 rounded-lg" />
+                    <Skeleton className="h-4 w-24 rounded-lg" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* WhatsApp Settings Card Skeleton */}
+            <Card className="border border-border/60 shadow-xs h-fit">
+              <CardHeader className="pb-3 border-b border-border/40">
+                <Skeleton className="h-6 w-48 rounded-lg" />
+                <Skeleton className="h-4 w-64 rounded-lg mt-1" />
+              </CardHeader>
+              <CardContent className="pt-6 space-y-4">
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-36 rounded-lg" />
+                  <Skeleton className="h-10 w-full rounded-lg" />
+                  <Skeleton className="h-3 w-4/5 rounded-lg" />
+                </div>
+                <Skeleton className="h-10 w-full rounded-lg" />
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     )

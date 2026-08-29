@@ -11,6 +11,7 @@ import {
   CardTitle,
   CardFooter,
 } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { DatePicker } from "@/components/date-picker"
@@ -250,10 +251,56 @@ export default function SemestersPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center font-sans">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-          <span className="text-muted-foreground text-sm">Loading semesters...</span>
+      <div className="flex flex-1 flex-col gap-4 py-4 md:gap-6 md:py-6 animate-pulse">
+        <div className="flex flex-col gap-6 px-4 lg:px-6">
+          {/* Header Title and Actions Skeleton */}
+          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+            <div className="flex flex-col gap-2">
+              <Skeleton className="h-8 w-48 rounded-lg" />
+              <Skeleton className="h-4 w-80 rounded-lg" />
+            </div>
+            <Skeleton className="h-10 w-36 rounded-lg shrink-0" />
+          </div>
+
+          {/* Active Semester Alert Card Skeleton */}
+          <Card className="border border-border/60 shadow-xs">
+            <CardHeader className="pb-3 flex flex-row items-center gap-3">
+              <Skeleton className="h-5 w-5 rounded-full" />
+              <Skeleton className="h-5 w-48 rounded-lg" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-4 w-96 rounded-lg" />
+            </CardContent>
+          </Card>
+
+          {/* Semester Grid Skeleton */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Card key={i} className="border border-border/60 shadow-xs flex flex-col justify-between">
+                <CardHeader className="pb-3">
+                  <div className="flex justify-between items-start">
+                    <Skeleton className="h-6 w-32 rounded-lg" />
+                    <Skeleton className="h-5 w-16 rounded-full" />
+                  </div>
+                  <Skeleton className="h-4 w-40 rounded-lg mt-1" />
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex justify-between">
+                    <Skeleton className="h-3 w-20 rounded-lg" />
+                    <Skeleton className="h-3 w-24 rounded-lg" />
+                  </div>
+                  <div className="flex justify-between">
+                    <Skeleton className="h-3 w-24 rounded-lg" />
+                    <Skeleton className="h-3 w-24 rounded-lg" />
+                  </div>
+                </CardContent>
+                <CardFooter className="pt-3 border-t border-border/40 flex justify-end gap-2 text-right">
+                  <Skeleton className="h-8 w-16 rounded-lg" />
+                  <Skeleton className="h-8 w-16 rounded-lg" />
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
         </div>
       </div>
     )

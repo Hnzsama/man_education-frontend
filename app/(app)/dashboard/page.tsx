@@ -11,6 +11,7 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -141,42 +142,67 @@ export default function DashboardPage() {
 
     const fetchData = async () => {
       try {
-        // Fetch current user details
-        const meRes = await fetch(`${API_URL}/api/users/me`, {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        if (meRes.ok) {
-          const meData = await meRes.json()
-          setCurrentUser(meData)
-        }
-
-        // Fetch custom holidays
-        const customHolidaysRes = await fetch(`${API_URL}/api/custom-holidays`, {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        let cHolidays: any[] = []
-        if (customHolidaysRes.ok) {
-          cHolidays = await customHolidaysRes.json()
-          setCustomHolidays(cHolidays)
-        }
-
-        // Fetch national holidays
         const currentYear = new Date().getFullYear()
-        const natHolidaysRes = await fetch(`${API_URL}/api/semesters/holidays?year=${currentYear}`, {
+
+        // Parallel asynchronous fetches
+        const mePromise = fetch(`${API_URL}/api/users/me`, {
           headers: { Authorization: `Bearer ${token}` },
+        }).then(res => res.ok ? res.json() : null)
+
+        const customHolidaysPromise = fetch(`${API_URL}/api/custom-holidays`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }).then(res => res.ok ? res.json() : [])
+
+        const natHolidaysPromise = fetch(`${API_URL}/api/semesters/holidays?year=${currentYear}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }).then(async res => {
+          if (res.ok) {
+            const data = await res.json()
+            if (Array.isArray(data)) return data
+            if (data && Array.isArray(data.data)) return data.data
+            if (data && Array.isArray(data.holidays)) return data.holidays
+          }
+          return []
         })
-        let nHolidays: any[] = []
-        if (natHolidaysRes.ok) {
-          const data = await natHolidaysRes.json()
-          if (Array.isArray(data)) nHolidays = data
-          else if (data && Array.isArray(data.data)) nHolidays = data.data
-          else if (data && Array.isArray(data.holidays)) nHolidays = data.holidays
-          setNationalHolidays(nHolidays)
-        }
+
+        const tasksPromise = fetch(`${API_URL}/api/tasks`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }).then(res => res.ok ? res.json() : [])
+
+        const semPromise = fetch(`${API_URL}/api/semesters`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }).then(async res => {
+          if (!res.ok) throw new Error("Failed to load semesters")
+          const semestersData = await res.json()
+          const activeSem = semestersData.find((s: any) => s.isActive) || semestersData[0]
+          
+          let coursesData: any[] = []
+          if (activeSem) {
+            const coursesRes = await fetch(`${API_URL}/api/semesters/${activeSem.id}/courses`, {
+              headers: { Authorization: `Bearer ${token}` },
+            })
+            if (coursesRes.ok) {
+              coursesData = await coursesRes.json()
+            }
+          }
+          return { semestersData, activeSem, coursesData }
+        })
+
+        const [userData, cHolidays, nHolidays, tasksData, semResult] = await Promise.all([
+          mePromise,
+          customHolidaysPromise,
+          natHolidaysPromise,
+          tasksPromise,
+          semPromise
+        ])
+
+        if (userData) setCurrentUser(userData)
+        setCustomHolidays(cHolidays)
+        setNationalHolidays(nHolidays)
 
         const now = new Date()
         const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
-
+        
         // Find custom holiday for today
         const activeCustomHoliday = cHolidays.find((h: any) => todayStr >= h.startDate && todayStr <= h.endDate)
         
@@ -186,89 +212,68 @@ export default function DashboardPage() {
         const holidayName = activeCustomHoliday?.name || activeNationalHoliday?.holiday_name || null
         setTodayHolidayName(holidayName)
 
-        // 1. Fetch semesters to find active one
-        const semRes = await fetch(`${API_URL}/api/semesters`, {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        if (!semRes.ok) throw new Error("Failed to load semesters")
-        const semesters = await semRes.json()
-        const activeSem = semesters.find((s: any) => s.isActive) || semesters[0]
+        const { semestersData, activeSem, coursesData } = semResult
         setActiveSemester(activeSem)
+        setCourses(coursesData)
 
-        if (activeSem) {
-          // 2. Fetch courses under the active semester
-          const coursesRes = await fetch(`${API_URL}/api/semesters/${activeSem.id}/courses`, {
-            headers: { Authorization: `Bearer ${token}` },
-          })
-          if (coursesRes.ok) {
-            const coursesData = await coursesRes.json()
-            setCourses(coursesData)
+        if (activeSem && coursesData.length > 0) {
+          // Extract today's schedules
+          const todayNum = getTodayDayOfWeek()
+          const todayScheds: any[] = []
 
-            // Extract today's schedules
-            const todayNum = getTodayDayOfWeek()
-            const todayScheds: any[] = []
+          coursesData.forEach((course: any) => {
+            if (course.schedules && Array.isArray(course.schedules)) {
+              course.schedules.forEach((s: any) => {
+                if (s.dayOfWeek === todayNum) {
+                  const exception = s.exceptions?.find((e: any) => e.date === todayStr)
+                  let isCancelled = false
+                  let isMoved = false
+                  let targetStartTime = s.startTime
+                  let targetEndTime = s.endTime
+                  let targetRoom = s.room
+                  let targetLink = s.link
+                  let note = ""
 
-            coursesData.forEach((course: any) => {
-              if (course.schedules && Array.isArray(course.schedules)) {
-                course.schedules.forEach((s: any) => {
-                  if (s.dayOfWeek === todayNum) {
-                    const exception = s.exceptions?.find((e: any) => e.date === todayStr)
-                    let isCancelled = false
-                    let isMoved = false
-                    let targetStartTime = s.startTime
-                    let targetEndTime = s.endTime
-                    let targetRoom = s.room
-                    let targetLink = s.link
-                    let note = ""
-
-                    if (exception) {
-                      if (exception.type === "CANCELLED") {
-                        isCancelled = true
-                      } else if (exception.type === "MOVED") {
-                        isMoved = true
-                        if (exception.newStartTime) targetStartTime = exception.newStartTime
-                        if (exception.newEndTime) targetEndTime = exception.newEndTime
-                        if (exception.newRoom) targetRoom = exception.newRoom
-                        if (exception.newLink) targetLink = exception.newLink
-                      }
-                      note = exception.note || ""
+                  if (exception) {
+                    if (exception.type === "CANCELLED") {
+                      isCancelled = true
+                    } else if (exception.type === "MOVED") {
+                      isMoved = true
+                      if (exception.newStartTime) targetStartTime = exception.newStartTime
+                      if (exception.newEndTime) targetEndTime = exception.newEndTime
+                      if (exception.newRoom) targetRoom = exception.newRoom
+                      if (exception.newLink) targetLink = exception.newLink
                     }
-
-                    todayScheds.push({ 
-                      ...s, 
-                      startTime: targetStartTime,
-                      endTime: targetEndTime,
-                      room: targetRoom,
-                      link: targetLink,
-                      courseName: course.name, 
-                      courseCode: course.code,
-                      isCancelled,
-                      isMoved,
-                      note,
-                      isHoliday: !!holidayName
-                    })
+                    note = exception.note || ""
                   }
-                })
-              }
-            })
-            // Sort schedules by start time
-            todayScheds.sort((a, b) => a.startTime.localeCompare(b.startTime))
-            setTodaySchedules(todayScheds)
-          }
+
+                  todayScheds.push({ 
+                    ...s, 
+                    startTime: targetStartTime,
+                    endTime: targetEndTime,
+                    room: targetRoom,
+                    link: targetLink,
+                    courseName: course.name, 
+                    courseCode: course.code,
+                    isCancelled,
+                    isMoved,
+                    note,
+                    isHoliday: !!holidayName
+                  })
+                }
+              })
+            }
+          })
+          // Sort schedules by start time
+          todayScheds.sort((a, b) => a.startTime.localeCompare(b.startTime))
+          setTodaySchedules(todayScheds)
         }
 
-        // 3. Fetch all tasks to filter pending ones
-        const tasksRes = await fetch(`${API_URL}/api/tasks`, {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        if (tasksRes.ok) {
-          const tasksData = await tasksRes.json()
-          // Sort by deadline, only pending/in progress tasks
-          const pending = tasksData
-            .filter((t: any) => t.status !== "DONE")
-            .sort((a: any, b: any) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime())
-          setPendingTasks(pending)
-        }
+        // Sort by deadline, only pending/in progress tasks
+        const pending = tasksData
+          .filter((t: any) => t.status !== "DONE")
+          .sort((a: any, b: any) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime())
+        setPendingTasks(pending)
 
         setLoading(false)
       } catch (err: any) {
@@ -296,10 +301,82 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center font-sans">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-          <span className="text-muted-foreground text-sm">Loading dashboard details...</span>
+      <div className="flex flex-1 flex-col gap-4 py-4 md:gap-6 md:py-6 animate-pulse">
+        <div className="flex flex-col gap-6 px-4 lg:px-6">
+          {/* Header Skeleton */}
+          <div className="flex flex-col gap-2">
+            <Skeleton className="h-8 w-64 rounded-lg" />
+            <Skeleton className="h-4 w-96 rounded-lg" />
+          </div>
+
+          {/* Metrics Grid Skeleton */}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Card key={i} className="border border-border/60 shadow-xs">
+                <CardContent className="py-5 flex items-center justify-between">
+                  <div className="space-y-2">
+                    <Skeleton className="h-3 w-24 rounded-lg" />
+                    <Skeleton className="h-6 w-32 rounded-lg" />
+                  </div>
+                  <Skeleton className="h-10 w-10 rounded-lg" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Schedule & Tasks Grid Skeleton */}
+          <div className="grid gap-6 md:grid-cols-2">
+            {/* Today's Schedule Card Skeleton */}
+            <Card className="border border-border/60 shadow-xs flex flex-col justify-between">
+              <CardHeader className="pb-3 border-b border-border/40">
+                <div className="flex justify-between items-center">
+                  <Skeleton className="h-6 w-48 rounded-lg" />
+                  <Skeleton className="h-5 w-16 rounded-full" />
+                </div>
+                <Skeleton className="h-4 w-64 rounded-lg mt-1" />
+              </CardHeader>
+              <CardContent className="pt-4 flex-1 space-y-4">
+                {Array.from({ length: 2 }).map((_, i) => (
+                  <div key={i} className="flex gap-4 items-start p-3 rounded-xl border border-border/50">
+                    <Skeleton className="h-10 w-10 rounded-lg shrink-0" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-4 w-3/4 rounded-lg" />
+                      <Skeleton className="h-3 w-1/2 rounded-lg" />
+                      <div className="flex gap-2 mt-2">
+                        <Skeleton className="h-5 w-16 rounded-full" />
+                        <Skeleton className="h-5 w-20 rounded-full" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            {/* Upcoming Tasks Card Skeleton */}
+            <Card className="border border-border/60 shadow-xs flex flex-col justify-between">
+              <CardHeader className="pb-3 border-b border-border/40">
+                <div className="flex justify-between items-center">
+                  <Skeleton className="h-6 w-48 rounded-lg" />
+                  <Skeleton className="h-5 w-20 rounded-full" />
+                </div>
+                <Skeleton className="h-4 w-64 rounded-lg mt-1" />
+              </CardHeader>
+              <CardContent className="pt-4 flex-1 space-y-4">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="flex gap-4 items-start p-3 rounded-xl border border-border/50">
+                    <div className="flex-1 space-y-2">
+                      <div className="flex justify-between items-start">
+                        <Skeleton className="h-4 w-1/2 rounded-lg" />
+                        <Skeleton className="h-5 w-12 rounded-full" />
+                      </div>
+                      <Skeleton className="h-3 w-2/3 rounded-lg" />
+                      <Skeleton className="h-3 w-1/3 rounded-lg" />
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     )

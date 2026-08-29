@@ -4,6 +4,8 @@ import { API_URL } from "@/lib/config"
 import * as React from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Card, CardHeader, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
@@ -471,10 +473,68 @@ export default function CalendarPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-          <span className="text-sm text-muted-foreground">Loading calendar…</span>
+      <div className="flex flex-1 flex-col gap-6 py-4 md:py-6 px-4 lg:px-6 font-sans animate-pulse">
+        {/* Topbar Skeleton */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b pb-4 border-border/40">
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-56 rounded-lg" />
+            <Skeleton className="h-4 w-96 rounded-lg" />
+          </div>
+          <div className="flex gap-2">
+            <Skeleton className="h-10 w-32 rounded-lg" />
+            <Skeleton className="h-10 w-24 rounded-lg" />
+          </div>
+        </div>
+
+        {/* Layout: Calendar Grid & Sidebar */}
+        <div className="grid gap-6 lg:grid-cols-4 items-start">
+          {/* Calendar Table (Left 3 columns) */}
+          <Card className="lg:col-span-3 border border-border/60 shadow-xs">
+            <CardHeader className="pb-3 border-b border-border/40 flex flex-row items-center justify-between">
+              <Skeleton className="h-6 w-48 rounded-lg" />
+              <div className="flex gap-1">
+                <Skeleton className="h-9 w-9 rounded-lg" />
+                <Skeleton className="h-9 w-20 rounded-lg" />
+                <Skeleton className="h-9 w-9 rounded-lg" />
+              </div>
+            </CardHeader>
+            <CardContent className="p-4 space-y-4">
+              {/* Day Headers (Mon, Tue...) */}
+              <div className="grid grid-cols-7 gap-2 border-b pb-2 border-border/20 text-center">
+                {Array.from({ length: 7 }).map((_, i) => (
+                  <Skeleton key={i} className="h-4 w-10 rounded-lg mx-auto" />
+                ))}
+              </div>
+              {/* Calendar Grid (6 rows of 7 days) */}
+              <div className="grid grid-cols-7 gap-2">
+                {Array.from({ length: 35 }).map((_, i) => (
+                  <div key={i} className="min-h-[90px] border border-border/40 rounded-xl p-2 flex flex-col justify-between">
+                    <Skeleton className="h-4 w-4 rounded-lg" />
+                    {i % 7 === 2 && <Skeleton className="h-4 w-5/6 rounded-lg mt-2" />}
+                    {i % 7 === 5 && <Skeleton className="h-4 w-2/3 rounded-lg mt-2" />}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Agenda Sidebar (Right 1 column) */}
+          <div className="space-y-4">
+            <Skeleton className="h-6 w-32 rounded-lg" />
+            <Card className="border border-border/60 shadow-xs">
+              <CardHeader className="pb-3">
+                <Skeleton className="h-5 w-40 rounded-lg" />
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="p-3 rounded-xl border border-border/50 space-y-2">
+                    <Skeleton className="h-4 w-full rounded-lg" />
+                    <Skeleton className="h-3 w-2/3 rounded-lg" />
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     )
