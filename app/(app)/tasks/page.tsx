@@ -30,7 +30,7 @@ export default function TasksPage() {
   const [loading, setLoading] = React.useState(true)
 
   // Filters state
-  const [statusFilter, setStatusFilter] = React.useState<string>("ALL")
+  const [statusFilter, setStatusFilter] = React.useState<string>("PENDING")
   const [priorityFilter, setPriorityFilter] = React.useState<string>("ALL")
   const [semesterFilter, setSemesterFilter] = React.useState<string>("ALL")
   const [courseFilter, setCourseFilter] = React.useState<string>("ALL")
