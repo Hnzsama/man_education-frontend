@@ -12,6 +12,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger } from "@/components/ui/select"
 import { TaskCard } from "./components/task-card"
 import { TaskSheet } from "./components/task-sheet"
+import { TaskDetailSheet } from "./components/task-detail-sheet"
 
 function getCookie(name: string) {
   if (typeof document === "undefined") return undefined
@@ -56,6 +57,10 @@ export default function TasksPage() {
   // Sheet State
   const [sheetOpen, setSheetOpen] = React.useState(false)
   const [editingTaskId, setEditingTaskId] = React.useState<string | null>(null)
+
+  // Detail Sheet State
+  const [detailOpen, setDetailOpen] = React.useState(false)
+  const [selectedTask, setSelectedTask] = React.useState<any | null>(null)
 
   // Confirmation Modal State
   const [confirmOpen, setConfirmOpen] = React.useState(false)
@@ -334,6 +339,11 @@ export default function TasksPage() {
     setConfirmOpen(true)
   }
 
+  const handleCardClick = (task: any) => {
+    setSelectedTask(task)
+    setDetailOpen(true)
+  }
+
   const filteredCourses = React.useMemo(() => {
     if (semesterFilter === "ALL") return courses
     return courses.filter((c) => c.semesterId === semesterFilter)
@@ -560,11 +570,24 @@ export default function TasksPage() {
                 handleQuickComplete={handleQuickComplete}
                 handleEditClick={handleEditClick}
                 handleDeleteClick={handleDeleteClick}
+                onCardClick={handleCardClick}
               />
             ))}
           </div>
         )}
       </div>
+
+      {/* Task Detail Sheet */}
+      <TaskDetailSheet
+        task={selectedTask}
+        courses={courses}
+        isOpen={detailOpen}
+        onClose={() => setDetailOpen(false)}
+        formatDate={formatDate}
+        onEditClick={handleEditClick}
+        onDeleteClick={handleDeleteClick}
+        onQuickComplete={handleQuickComplete}
+      />
 
       {/* Side Sheet Form for Add/Edit */}
       <TaskSheet

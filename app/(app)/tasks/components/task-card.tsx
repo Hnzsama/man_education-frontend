@@ -31,6 +31,7 @@ interface TaskCardProps {
   handleEditClick: (task: any) => void
   handleDeleteClick: (id: string) => void
   onTaskUpdated?: () => void
+  onCardClick?: (task: any) => void
 }
 
 export function TaskCard({
@@ -41,6 +42,7 @@ export function TaskCard({
   handleEditClick,
   handleDeleteClick,
   onTaskUpdated,
+  onCardClick,
 }: TaskCardProps) {
   const [attachDialogOpen, setAttachDialogOpen] = React.useState(false)
   const [localAttachments, setLocalAttachments] = React.useState<any[]>(task.attachments || [])
@@ -72,6 +74,10 @@ export function TaskCard({
           : "border-border/60"
       }`}
     >
+      <div
+        className="cursor-pointer"
+        onClick={() => onCardClick?.(task)}
+      >
       <CardHeader className="pb-3">
         <div className="flex justify-between items-start gap-4">
           <div className="flex flex-col gap-1">
@@ -281,13 +287,14 @@ export function TaskCard({
           )}
         </div>
       </CardContent>
+      </div>
       <CardFooter className="pt-3 border-t border-border/40 flex justify-between items-center gap-2 bg-muted/10">
         {!isDone ? (
           <Button
             variant="ghost"
             size="sm"
             className="text-xs h-8 px-2 text-primary hover:bg-primary/10 hover:text-primary font-medium"
-            onClick={() => handleQuickComplete(task)}
+            onClick={(e) => { e.stopPropagation(); handleQuickComplete(task) }}
           >
             <HugeiconsIcon icon={CircleCheckIcon} className="h-3.5 w-3.5 mr-1" />
             Mark Done
@@ -308,7 +315,7 @@ export function TaskCard({
                 ? "text-primary hover:bg-primary/10 hover:text-primary"
                 : "text-muted-foreground hover:text-foreground"
             }`}
-            onClick={() => setAttachDialogOpen(true)}
+            onClick={(e) => { e.stopPropagation(); setAttachDialogOpen(true) }}
             title="Lihat & kelola lampiran"
           >
             <HugeiconsIcon icon={Attachment01Icon} className="h-3.5 w-3.5" />
@@ -320,7 +327,7 @@ export function TaskCard({
             variant="ghost"
             size="sm"
             className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
-            onClick={() => handleEditClick(task)}
+            onClick={(e) => { e.stopPropagation(); handleEditClick(task) }}
           >
             <HugeiconsIcon icon={PencilEdit01Icon} className="h-4 w-4" />
           </Button>
@@ -328,7 +335,7 @@ export function TaskCard({
             variant="ghost"
             size="sm"
             className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
-            onClick={() => handleDeleteClick(task.id)}
+            onClick={(e) => { e.stopPropagation(); handleDeleteClick(task.id) }}
           >
             <HugeiconsIcon icon={Delete02Icon} className="h-4 w-4" />
           </Button>

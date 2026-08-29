@@ -266,12 +266,23 @@ export function TaskSheet({
             </Field>
             <Field>
               <FieldLabel htmlFor="task-desc">Description</FieldLabel>
-              <Input
+              <textarea
                 id="task-desc"
-                type="text"
                 placeholder="Details about task or requirements"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
+                rows={3}
+                style={{
+                  width: "100%",
+                  resize: "vertical",
+                  padding: "0.5rem 0.75rem",
+                  borderRadius: "0.5rem",
+                  border: "1px solid hsl(var(--border))",
+                  background: "hsl(var(--input))",
+                  color: "hsl(var(--foreground))",
+                  fontSize: "0.875rem",
+                  outline: "none",
+                }}
               />
             </Field>
             <Field>
