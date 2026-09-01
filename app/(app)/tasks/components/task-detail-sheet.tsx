@@ -182,13 +182,16 @@ export function TaskDetailSheet({
               </span>
               <div className="flex flex-col gap-2">
                 {allMaterials.map((att: any) => {
+                  const isLink = att.fileType === "link"
                   const fileType = att.fileType || att.mimeType || ""
-                  const isImage = fileType.startsWith("image/")
-                  const fileUrl = att._isLegacy
+                  const isImage = !isLink && fileType.startsWith("image/")
+                  const fileUrl = isLink
+                    ? att.filePath
+                    : att._isLegacy
                     ? `${API_URL}/uploads/tasks/${att.filePath}`
                     : `${API_URL}/uploads/resources/${att.filePath}`
                   const displayName = att.name || att.title || "File"
-                  const sizeKb = att.fileSize ? (att.fileSize / 1024).toFixed(1) : null
+                  const sizeKb = !isLink && att.fileSize ? (att.fileSize / 1024).toFixed(1) : null
 
                   return (
                     <a
@@ -198,7 +201,11 @@ export function TaskDetailSheet({
                       rel="noopener noreferrer"
                       className="flex items-center gap-3 rounded-xl border border-border/50 bg-background/50 p-2.5 hover:bg-muted/40 transition-colors"
                     >
-                      {isImage ? (
+                      {isLink ? (
+                        <div className="h-10 w-10 rounded-lg border border-sky-500/30 bg-sky-500/10 flex items-center justify-center text-sky-500 shrink-0">
+                          <HugeiconsIcon icon={Link01Icon} className="h-5 w-5" />
+                        </div>
+                      ) : isImage ? (
                         <img src={fileUrl} alt={displayName} className="h-10 w-10 rounded-lg object-cover border border-border/70 shrink-0" />
                       ) : (
                         <div className="h-10 w-10 rounded-lg border border-border/70 bg-muted/65 flex items-center justify-center text-primary shrink-0">
@@ -207,7 +214,11 @@ export function TaskDetailSheet({
                       )}
                       <div className="flex flex-col min-w-0">
                         <span className="text-sm font-medium truncate" title={displayName}>{displayName}</span>
-                        {sizeKb && <span className="text-[10px] text-muted-foreground">{sizeKb} KB</span>}
+                        {isLink ? (
+                          <span className="text-[10px] text-sky-500 truncate max-w-[280px]">{att.filePath}</span>
+                        ) : (
+                          sizeKb && <span className="text-[10px] text-muted-foreground">{sizeKb} KB</span>
+                        )}
                       </div>
                     </a>
                   )

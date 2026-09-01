@@ -165,20 +165,27 @@ export function TaskCard({
               </span>
               <div className="flex flex-wrap gap-2">
                 {allMaterials.map((att: any) => {
+                  const isLink = att.fileType === "link"
                   const fileType = att.fileType || att.mimeType || ""
-                  const isImage = fileType.startsWith("image/")
-                  const fileUrl = att._isLegacy
+                  const isImage = !isLink && fileType.startsWith("image/")
+                  const fileUrl = isLink
+                    ? att.filePath
+                    : att._isLegacy
                     ? `${API_URL}/uploads/tasks/${att.filePath}`
                     : `${API_URL}/uploads/resources/${att.filePath}`
                   const displayName = att.name || att.title || "File"
-                  const sizeKb = att.fileSize ? (att.fileSize / 1024).toFixed(1) : null
+                  const sizeKb = !isLink && att.fileSize ? (att.fileSize / 1024).toFixed(1) : null
 
                   return (
                     <div
                       key={att.id}
                       className="group relative flex items-center gap-2 rounded-lg border border-border/50 bg-background/50 p-1.5 pr-2.5 text-xs hover:bg-muted/40 transition-colors max-w-full"
                     >
-                      {isImage ? (
+                      {isLink ? (
+                        <div className="h-8 w-8 rounded border border-sky-500/30 bg-sky-500/10 flex items-center justify-center text-sky-500 flex-shrink-0 font-sans">
+                          <HugeiconsIcon icon={Link01Icon} className="h-4 w-4" />
+                        </div>
+                      ) : isImage ? (
                         <a
                           href={fileUrl}
                           target="_blank"
@@ -206,8 +213,10 @@ export function TaskCard({
                         >
                           {displayName}
                         </a>
-                        {sizeKb && (
-                          <span className="text-[9px] text-muted-foreground">{sizeKb} KB</span>
+                        {isLink ? (
+                          <span className="text-[9px] text-sky-500 truncate max-w-[120px]">Link</span>
+                        ) : (
+                          sizeKb && <span className="text-[9px] text-muted-foreground">{sizeKb} KB</span>
                         )}
                       </div>
                     </div>

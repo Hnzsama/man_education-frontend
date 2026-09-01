@@ -211,11 +211,16 @@ export function TaskFolderDetails({
               <>
                 {/* Task Attachments (from teacher/creator) */}
                 {(selectedTask?.attachments || []).map((att: any) => {
-                  const isImage = att.fileType?.startsWith("image/")
-                  const fileUrl = `${apiUrl}/uploads/tasks/${att.filePath}`
+                  const isLink = att.fileType === "link"
+                  const isImage = !isLink && att.fileType?.startsWith("image/")
+                  const fileUrl = isLink ? att.filePath : `${apiUrl}/uploads/tasks/${att.filePath}`
                   return (
                     <div key={att.id} className="group flex items-center gap-3 rounded-lg border bg-background p-2.5 hover:bg-muted/10 transition-all">
-                      {isImage ? (
+                      {isLink ? (
+                        <div className="h-8 w-8 rounded border border-sky-500/30 bg-sky-500/10 flex items-center justify-center shrink-0">
+                          <HugeiconsIcon icon={Link01Icon} className="h-4 w-4 text-sky-500" />
+                        </div>
+                      ) : isImage ? (
                         <img src={fileUrl} className="h-8 w-8 rounded object-cover shrink-0" />
                       ) : (
                         <div className="h-8 w-8 rounded bg-primary/5 border flex items-center justify-center shrink-0">
@@ -224,7 +229,7 @@ export function TaskFolderDetails({
                       )}
                       <div className="flex-1 min-w-0">
                         <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="font-semibold text-xs truncate block hover:text-primary hover:underline">{att.name}</a>
-                        <span className="text-[9px] text-muted-foreground">{formatBytes(att.fileSize)}</span>
+                        <span className="text-[9px] text-muted-foreground truncate block">{isLink ? att.filePath : formatBytes(att.fileSize)}</span>
                       </div>
                       <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive opacity-0 group-hover:opacity-100 transition-all" onClick={() => onDeleteAtt(att.id)}>
                         <HugeiconsIcon icon={Delete02Icon} className="h-3.5 w-3.5" />
